@@ -1,0 +1,46 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace Vita.Planning.Application.DTOs;
+
+public sealed class SaveResourcePlanEntriesPeriodRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IReadOnlyList<SaveResourcePlanEntriesPeriodItemRequest> Periods { get; set; } = Array.Empty<SaveResourcePlanEntriesPeriodItemRequest>();
+}
+
+public sealed class SaveResourcePlanEntriesPeriodItemRequest : IValidatableObject
+{
+    [Required]
+    public int PlanningTargetId { get; set; }
+
+    [Required]
+    public int ResourcePlanId { get; set; }
+
+    [Required]
+    public DateOnly FromDate { get; set; }
+
+    [Required]
+    public DateOnly ToDate { get; set; }
+
+    [Required]
+    public decimal Hours { get; set; }
+
+    [MaxLength(510)]
+    public string? Description { get; set; }
+
+    public bool IsManualOverride { get; set; }
+
+    [MaxLength(200)]
+    public string? ChangedBy { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (ToDate < FromDate)
+        {
+            yield return new ValidationResult(
+                "ToDate must be greater than or equal to FromDate.",
+                [nameof(ToDate), nameof(FromDate)]);
+        }
+    }
+}

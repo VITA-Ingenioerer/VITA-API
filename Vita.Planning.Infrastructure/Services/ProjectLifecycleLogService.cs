@@ -1,0 +1,149 @@
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using Vita.Planning.Application.DTOs;
+using Vita.Planning.Application.Interfaces;
+using Vita.Planning.Infrastructure.Data;
+using Vita.Planning.Infrastructure.Data.Entities;
+
+namespace Vita.Planning.Infrastructure.Services;
+
+public sealed class ProjectLifecycleLogService : IProjectLifecycleLogService
+{
+    private readonly PlanningDbContext _dbContext;
+
+    public ProjectLifecycleLogService(PlanningDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public async Task<IReadOnlyList<ProjectLifecycleLogDto>> GetAllAsync(
+        string? targetType = null,
+        int? projectNumber = null,
+        int? offerId = null,
+        string? eventType = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.ProjectLifecycleLogs.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(targetType))
+        {
+            query = query.Where(x => x.TargetType == targetType.Trim());
+        }
+
+        if (projectNumber.HasValue)
+        {
+            query = query.Where(x => x.ProjectNumber == projectNumber.Value);
+        }
+
+        if (offerId.HasValue)
+        {
+            query = query.Where(x => x.OfferId == offerId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(eventType))
+        {
+            query = query.Where(x => x.EventType == eventType.Trim());
+        }
+
+        return await query
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ThenByDescending(x => x.ProjectLifecycleLogId)
+            .Select(MapToDtoExpression())
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<ProjectLifecycleLogDto?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.ProjectLifecycleLogs
+            .AsNoTracking()
+            .Where(x => x.ProjectLifecycleLogId == id)
+            .Select(MapToDtoExpression())
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<ProjectLifecycleLogDto> CreateAsync(
+        CreateProjectLifecycleLogRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.TargetType))
+        {
+            throw new InvalidOperationException("TargetType is required.");
+        }
+
+        if (request.TargetType is not ("Project" or "Offer"))
+        {
+            throw new InvalidOperationException("TargetType must be 'Project' or 'Offer' (constraint: CK_core_project_lifecycle_log_target_type).");
+        }
+
+        if (request.TargetType == "Project" && request.ProjectNumber is null)
+        {
+            throw new InvalidOperationException("ProjectNumber is required when TargetType is 'Project'.");
+        }
+
+        if (request.TargetType == "Offer" && request.OfferId is null)
+        {
+            throw new InvalidOperationException("OfferId is required when TargetType is 'Offer'.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.EventType))
+        {
+            throw new InvalidOperationException("EventType is required.");
+        }
+
+        var entity = new ProjectLifecycleLog
+        {
+            TargetType = request.TargetType.Trim(),
+            ProjectNumber = request.ProjectNumber,
+            OfferId = request.OfferId,
+            EventType = request.EventType.Trim(),
+            EventTitle = NormalizeNullable(request.EventTitle),
+            EventDescription = NormalizeNullable(request.EventDescription),
+            OldValue = NormalizeNullable(request.OldValue),
+            NewValue = NormalizeNullable(request.NewValue),
+            SnapshotJson = NormalizeNullable(request.SnapshotJson),
+            CreatedBy = NormalizeNullable(request.CreatedBy),
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        _dbContext.ProjectLifecycleLogs.Add(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return MapToDto(entity);
+    }
+
+    private static string? NormalizeNullable(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static ProjectLifecycleLogDto MapToDto(ProjectLifecycleLog entity) => new()
+    {
+        ProjectLifecycleLogId = entity.ProjectLifecycleLogId,
+        TargetType = entity.TargetType,
+        ProjectNumber = entity.ProjectNumber,
+        OfferId = entity.OfferId,
+        EventType = entity.EventType,
+        EventTitle = entity.EventTitle,
+        EventDescription = entity.EventDescription,
+        OldValue = entity.OldValue,
+        NewValue = entity.NewValue,
+        SnapshotJson = entity.SnapshotJson,
+        CreatedBy = entity.CreatedBy,
+        CreatedAtUtc = entity.CreatedAtUtc
+    };
+
+    private static Expression<Func<ProjectLifecycleLog, ProjectLifecycleLogDto>> MapToDtoExpression() =>
+        entity => new ProjectLifecycleLogDto
+        {
+            ProjectLifecycleLogId = entity.ProjectLifecycleLogId,
+            TargetType = entity.TargetType,
+            ProjectNumber = entity.ProjectNumber,
+            OfferId = entity.OfferId,
+            EventType = entity.EventType,
+            EventTitle = entity.EventTitle,
+            EventDescription = entity.EventDescription,
+            OldValue = entity.OldValue,
+            NewValue = entity.NewValue,
+            SnapshotJson = entity.SnapshotJson,
+            CreatedBy = entity.CreatedBy,
+            CreatedAtUtc = entity.CreatedAtUtc
+        };
+}

@@ -1,0 +1,4335 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Vita.Planning.Api",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/employee-capacity-overrides": {
+      "get": {
+        "tags": [
+          "EmployeeCapacityOverrides"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "EmployeeCapacityOverrides"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityOverrideRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityOverrideRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityOverrideRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/employee-capacity-overrides/{id}": {
+      "get": {
+        "tags": [
+          "EmployeeCapacityOverrides"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "EmployeeCapacityOverrides"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityOverrideRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityOverrideRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityOverrideRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityOverrideDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/employee-capacity-periods": {
+      "get": {
+        "tags": [
+          "EmployeeCapacityPeriods"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "EmployeeCapacityPeriods"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityPeriodRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityPeriodRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityPeriodRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/employee-capacity-periods/{id}": {
+      "get": {
+        "tags": [
+          "EmployeeCapacityPeriods"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "EmployeeCapacityPeriods"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityPeriodRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityPeriodRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityPeriodRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityPeriodDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/employee-capacity-profiles": {
+      "get": {
+        "tags": [
+          "EmployeeCapacityProfiles"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "EmployeeCapacityProfiles"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityProfileRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityProfileRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeCapacityProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/employee-capacity-profiles/{id}": {
+      "get": {
+        "tags": [
+          "EmployeeCapacityProfiles"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "EmployeeCapacityProfiles"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityProfileRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityProfileRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeCapacityProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeCapacityProfileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/internal-planning-codes": {
+      "get": {
+        "tags": [
+          "InternalPlanningCodes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "InternalPlanningCodes"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInternalPlanningCodeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInternalPlanningCodeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInternalPlanningCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/internal-planning-codes/{id}": {
+      "get": {
+        "tags": [
+          "InternalPlanningCodes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "InternalPlanningCodes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInternalPlanningCodeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInternalPlanningCodeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInternalPlanningCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalPlanningCodeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/offers": {
+      "get": {
+        "tags": [
+          "Offers"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OfferDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OfferDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OfferDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Offers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOfferRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOfferRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOfferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/offers/{id}": {
+      "get": {
+        "tags": [
+          "Offers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Offers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOfferRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOfferRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOfferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ops/health": {
+      "get": {
+        "tags": [
+          "Ops"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ops/db-test": {
+      "get": {
+        "tags": [
+          "Ops"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/planning-targets": {
+      "get": {
+        "tags": [
+          "PlanningTargets"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanningTargetDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanningTargetDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanningTargetDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PlanningTargets"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanningTargetRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanningTargetRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanningTargetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/planning-targets/{id}": {
+      "get": {
+        "tags": [
+          "PlanningTargets"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PlanningTargets"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanningTargetRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanningTargetRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanningTargetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningTargetDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/project-planning-metadata": {
+      "get": {
+        "tags": [
+          "ProjectPlanningMetadata"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/project-planning-metadata/{projectNumber}": {
+      "get": {
+        "tags": [
+          "ProjectPlanningMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "projectNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ProjectPlanningMetadata"
+        ],
+        "parameters": [
+          {
+            "name": "projectNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertProjectPlanningMetadataRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertProjectPlanningMetadataRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertProjectPlanningMetadataRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPlanningMetadataDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectNumber}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "parameters": [
+          {
+            "name": "projectNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/public-holiday-calendars": {
+      "get": {
+        "tags": [
+          "PublicHolidayCalendars"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PublicHolidayCalendars"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePublicHolidayCalendarRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePublicHolidayCalendarRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePublicHolidayCalendarRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public-holiday-calendars/{id}": {
+      "get": {
+        "tags": [
+          "PublicHolidayCalendars"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PublicHolidayCalendars"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePublicHolidayCalendarRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePublicHolidayCalendarRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePublicHolidayCalendarRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHolidayCalendarDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plan-audits": {
+      "get": {
+        "tags": [
+          "ResourcePlanAudits"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plan-audits/{id}": {
+      "get": {
+        "tags": [
+          "ResourcePlanAudits"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plan-audits/by-resource-plan/{resourcePlanId}": {
+      "get": {
+        "tags": [
+          "ResourcePlanAudits"
+        ],
+        "parameters": [
+          {
+            "name": "resourcePlanId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanAuditDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plan-entries": {
+      "get": {
+        "tags": [
+          "ResourcePlanEntries"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ResourcePlanEntries"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanEntryRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanEntryRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanEntryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plan-entries/{id}": {
+      "get": {
+        "tags": [
+          "ResourcePlanEntries"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ResourcePlanEntries"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanEntryRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanEntryRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanEntryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanEntryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plans": {
+      "get": {
+        "tags": [
+          "ResourcePlans"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ResourcePlans"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plans/{id}": {
+      "get": {
+        "tags": [
+          "ResourcePlans"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ResourcePlans"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plan-scenarios": {
+      "get": {
+        "tags": [
+          "ResourcePlanScenarios"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ResourcePlanScenarios"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanScenarioRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanScenarioRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourcePlanScenarioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/resource-plan-scenarios/{id}": {
+      "get": {
+        "tags": [
+          "ResourcePlanScenarios"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ResourcePlanScenarios"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanScenarioRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanScenarioRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourcePlanScenarioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcePlanScenarioDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/test-run": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sync/users": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sync/projects": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sync/project-groups": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sync/project-customers": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sync/project-statuses": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sync/project-employee-groups": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sync/project-employees": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sync/activities": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateEmployeeCapacityOverrideRequest": {
+        "required": [
+          "effectiveFrom",
+          "employeeId",
+          "overrideType"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "overrideType": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "weeklyHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "capacityFactor": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "fixedHoursPerWeek": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "reason": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "maxLength": 2000,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateEmployeeCapacityPeriodRequest": {
+        "required": [
+          "employeeId",
+          "generationSource",
+          "periodEnd",
+          "periodStart",
+          "periodType"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodType": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
+          },
+          "weeklyHoursBasis": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "publicHolidayDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "capacityHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isGenerated": {
+            "type": "boolean"
+          },
+          "generationSource": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateEmployeeCapacityProfileRequest": {
+        "required": [
+          "defaultWeeklyHours",
+          "effectiveFrom",
+          "employeeId"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "defaultWeeklyHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateInternalPlanningCodeRequest": {
+        "required": [
+          "category",
+          "code",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "category": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "officeCode": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "defaultDescription": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "colorTag": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isPlannable": {
+            "type": "boolean"
+          },
+          "isAbsence": {
+            "type": "boolean"
+          },
+          "isInternal": {
+            "type": "boolean"
+          },
+          "isBillable": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateOfferRequest": {
+        "required": [
+          "offerNumber",
+          "offerStatus",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "offerNumber": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "responsibleInitials": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "responsibleOfficeCode": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "clientName": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "developerName": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "architects": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "otherTeam": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "feeAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "expectedStartYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedStartQuarter": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedEndYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedEndQuarter": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "estimatedTotalHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "probabilityPercent": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+            "format": "double"
+          },
+          "weightedHoursOverride": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "sizeDescription": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "addToPqCompetition": {
+            "type": "boolean"
+          },
+          "hasRelation": {
+            "type": "boolean"
+          },
+          "convertedToProjectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "convertedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "offerStatus": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreatePlanningTargetRequest": {
+        "required": [
+          "code",
+          "name",
+          "targetType"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 510,
+            "minLength": 1,
+            "type": "string"
+          },
+          "targetType": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string"
+          },
+          "extProjectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "offerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "internalPlanningCodeId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "officeCode": {
+            "maxLength": 40,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isPlannable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreatePublicHolidayCalendarRequest": {
+        "required": [
+          "countryCode",
+          "holidayDate",
+          "holidayName"
+        ],
+        "type": "object",
+        "properties": {
+          "countryCode": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
+          },
+          "holidayDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "holidayName": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "isPublicHoliday": {
+            "type": "boolean"
+          },
+          "isHalfDay": {
+            "type": "boolean"
+          },
+          "hoursReduction": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateResourcePlanEntryRequest": {
+        "required": [
+          "hours",
+          "periodType",
+          "resourcePlanId",
+          "yearNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "resourcePlanId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "planningCode": {
+            "maxLength": 60,
+            "type": "string",
+            "nullable": true
+          },
+          "displayText": {
+            "maxLength": 300,
+            "type": "string",
+            "nullable": true
+          },
+          "yearNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monthNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "weekNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "periodType": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string"
+          },
+          "hours": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": {
+            "maxLength": 510,
+            "type": "string",
+            "nullable": true
+          },
+          "isManualOverride": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "planningTargetId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateResourcePlanRequest": {
+        "required": [
+          "employeeId",
+          "scenarioId",
+          "startMonth",
+          "startYear",
+          "visibleMonths"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scenarioId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startMonth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visibleMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateResourcePlanScenarioRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 510,
+            "type": "string",
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EmployeeCapacityOverrideDto": {
+        "type": "object",
+        "properties": {
+          "employeeCapacityOverrideId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "overrideType": {
+            "type": "string",
+            "nullable": true
+          },
+          "weeklyHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "capacityFactor": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "fixedHoursPerWeek": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EmployeeCapacityPeriodDto": {
+        "type": "object",
+        "properties": {
+          "employeeCapacityPeriodId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodType": {
+            "type": "string",
+            "nullable": true
+          },
+          "weeklyHoursBasis": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "publicHolidayDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "capacityHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isGenerated": {
+            "type": "boolean"
+          },
+          "generationSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "generatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EmployeeCapacityProfileDto": {
+        "type": "object",
+        "properties": {
+          "employeeCapacityProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "defaultWeeklyHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InternalPlanningCodeDto": {
+        "type": "object",
+        "properties": {
+          "internalPlanningCodeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "officeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "colorTag": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isPlannable": {
+            "type": "boolean"
+          },
+          "isAbsence": {
+            "type": "boolean"
+          },
+          "isInternal": {
+            "type": "boolean"
+          },
+          "isBillable": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OfferDto": {
+        "type": "object",
+        "properties": {
+          "offerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsibleInitials": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsibleOfficeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "developerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "architects": {
+            "type": "string",
+            "nullable": true
+          },
+          "otherTeam": {
+            "type": "string",
+            "nullable": true
+          },
+          "feeAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "expectedStartYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedStartQuarter": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedEndYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedEndQuarter": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "estimatedTotalHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "probabilityPercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "weightedHoursOverride": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "calculatedWeightedHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "sizeDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "addToPqCompetition": {
+            "type": "boolean"
+          },
+          "hasRelation": {
+            "type": "boolean"
+          },
+          "convertedToProjectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "convertedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "offerStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PlanningTargetDto": {
+        "type": "object",
+        "properties": {
+          "planningTargetId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetType": {
+            "type": "string",
+            "nullable": true
+          },
+          "extProjectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "offerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "internalPlanningCodeId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "officeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isPlannable": {
+            "type": "boolean"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectPlanningMetadataDto": {
+        "type": "object",
+        "properties": {
+          "projectNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "planningCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "planningStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "disciplineOwner": {
+            "type": "string",
+            "nullable": true
+          },
+          "probabilityPercent": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "defaultDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "colorTag": {
+            "type": "string",
+            "nullable": true
+          },
+          "planningGroup": {
+            "type": "string",
+            "nullable": true
+          },
+          "phase": {
+            "type": "string",
+            "nullable": true
+          },
+          "budgetHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "budgetRevenue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lastPlanningReviewBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isBillableForPlanning": {
+            "type": "boolean"
+          },
+          "isAbsence": {
+            "type": "boolean"
+          },
+          "isInternal": {
+            "type": "boolean"
+          },
+          "isProbableCase": {
+            "type": "boolean"
+          },
+          "isVisibleInPlanner": {
+            "type": "boolean"
+          },
+          "weeklyPlanningEnabled": {
+            "type": "boolean"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublicHolidayCalendarDto": {
+        "type": "object",
+        "properties": {
+          "publicHolidayCalendarId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "countryCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "holidayDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "holidayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPublicHoliday": {
+            "type": "boolean"
+          },
+          "isHalfDay": {
+            "type": "boolean"
+          },
+          "hoursReduction": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResourcePlanAuditDto": {
+        "type": "object",
+        "properties": {
+          "resourcePlanAuditId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "resourcePlanId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resourcePlanEntryId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "actionType": {
+            "type": "string",
+            "nullable": true
+          },
+          "oldHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "newHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "changedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResourcePlanDto": {
+        "type": "object",
+        "properties": {
+          "resourcePlanId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scenarioId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startMonth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visibleMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResourcePlanEntryDto": {
+        "type": "object",
+        "properties": {
+          "resourcePlanEntryId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resourcePlanId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "planningCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayText": {
+            "type": "string",
+            "nullable": true
+          },
+          "yearNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monthNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "weekNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "periodType": {
+            "type": "string",
+            "nullable": true
+          },
+          "hours": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isManualOverride": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "planningTargetId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResourcePlanScenarioDto": {
+        "type": "object",
+        "properties": {
+          "scenarioId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateEmployeeCapacityOverrideRequest": {
+        "required": [
+          "effectiveFrom",
+          "employeeId",
+          "overrideType"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "overrideType": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "weeklyHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "capacityFactor": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "fixedHoursPerWeek": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "reason": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "maxLength": 2000,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "updatedBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateEmployeeCapacityPeriodRequest": {
+        "required": [
+          "employeeId",
+          "generationSource",
+          "periodEnd",
+          "periodStart",
+          "periodType"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodType": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
+          },
+          "weeklyHoursBasis": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "publicHolidayDays": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "capacityHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isGenerated": {
+            "type": "boolean"
+          },
+          "generationSource": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateEmployeeCapacityProfileRequest": {
+        "required": [
+          "defaultWeeklyHours",
+          "effectiveFrom",
+          "employeeId"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "defaultWeeklyHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "updatedBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateInternalPlanningCodeRequest": {
+        "required": [
+          "category",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 150,
+            "minLength": 1,
+            "type": "string"
+          },
+          "category": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "officeCode": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "defaultDescription": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "colorTag": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isPlannable": {
+            "type": "boolean"
+          },
+          "isAbsence": {
+            "type": "boolean"
+          },
+          "isInternal": {
+            "type": "boolean"
+          },
+          "isBillable": {
+            "type": "boolean"
+          },
+          "updatedBy": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateOfferRequest": {
+        "required": [
+          "offerStatus",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "responsibleInitials": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "responsibleOfficeCode": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "clientName": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "developerName": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "architects": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "otherTeam": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "feeAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "expectedStartYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedStartQuarter": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedEndYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "expectedEndQuarter": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "estimatedTotalHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "probabilityPercent": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+            "format": "double"
+          },
+          "weightedHoursOverride": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "sizeDescription": {
+            "maxLength": 255,
+            "type": "string",
+            "nullable": true
+          },
+          "addToPqCompetition": {
+            "type": "boolean"
+          },
+          "hasRelation": {
+            "type": "boolean"
+          },
+          "convertedToProjectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "convertedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "offerStatus": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "updatedBy": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdatePlanningTargetRequest": {
+        "required": [
+          "code",
+          "name",
+          "targetType"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 510,
+            "minLength": 1,
+            "type": "string"
+          },
+          "targetType": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string"
+          },
+          "extProjectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "offerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "internalPlanningCodeId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "officeCode": {
+            "maxLength": 40,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isPlannable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdatePublicHolidayCalendarRequest": {
+        "required": [
+          "countryCode",
+          "holidayDate",
+          "holidayName"
+        ],
+        "type": "object",
+        "properties": {
+          "countryCode": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
+          },
+          "holidayDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "holidayName": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "isPublicHoliday": {
+            "type": "boolean"
+          },
+          "isHalfDay": {
+            "type": "boolean"
+          },
+          "hoursReduction": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateResourcePlanEntryRequest": {
+        "required": [
+          "hours",
+          "periodType",
+          "resourcePlanId",
+          "yearNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "resourcePlanId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "projectNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "planningCode": {
+            "maxLength": 60,
+            "type": "string",
+            "nullable": true
+          },
+          "displayText": {
+            "maxLength": 300,
+            "type": "string",
+            "nullable": true
+          },
+          "yearNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monthNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "weekNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "periodType": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string"
+          },
+          "hours": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": {
+            "maxLength": 510,
+            "type": "string",
+            "nullable": true
+          },
+          "isManualOverride": {
+            "type": "boolean"
+          },
+          "updatedBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "planningTargetId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateResourcePlanRequest": {
+        "required": [
+          "employeeId",
+          "scenarioId",
+          "startMonth",
+          "startYear",
+          "visibleMonths"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scenarioId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startMonth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visibleMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "updatedBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateResourcePlanScenarioRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 510,
+            "type": "string",
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "updatedBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpsertProjectPlanningMetadataRequest": {
+        "type": "object",
+        "properties": {
+          "planningCategory": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "planningStatus": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "disciplineOwner": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "probabilityPercent": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "defaultDescription": {
+            "maxLength": 510,
+            "type": "string",
+            "nullable": true
+          },
+          "colorTag": {
+            "maxLength": 40,
+            "type": "string",
+            "nullable": true
+          },
+          "planningGroup": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "phase": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "budgetHours": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "budgetRevenue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lastPlanningReviewBy": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isBillableForPlanning": {
+            "type": "boolean"
+          },
+          "isAbsence": {
+            "type": "boolean"
+          },
+          "isInternal": {
+            "type": "boolean"
+          },
+          "isProbableCase": {
+            "type": "boolean"
+          },
+          "isVisibleInPlanner": {
+            "type": "boolean"
+          },
+          "weeklyPlanningEnabled": {
+            "type": "boolean"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "EmployeeCapacityOverrides"
+    },
+    {
+      "name": "EmployeeCapacityPeriods"
+    },
+    {
+      "name": "EmployeeCapacityProfiles"
+    },
+    {
+      "name": "InternalPlanningCodes"
+    },
+    {
+      "name": "Offers"
+    },
+    {
+      "name": "Ops"
+    },
+    {
+      "name": "PlanningTargets"
+    },
+    {
+      "name": "ProjectPlanningMetadata"
+    },
+    {
+      "name": "Projects"
+    },
+    {
+      "name": "PublicHolidayCalendars"
+    },
+    {
+      "name": "ResourcePlanAudits"
+    },
+    {
+      "name": "ResourcePlanEntries"
+    },
+    {
+      "name": "ResourcePlans"
+    },
+    {
+      "name": "ResourcePlanScenarios"
+    },
+    {
+      "name": "Sync"
+    }
+  ]
+}
+Passkey navn
+Webadresse
+Email eller brugernavn

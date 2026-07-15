@@ -1,0 +1,1049 @@
+Folder PATH listing for volume Windows
+Volume serial number is E04B-CA74
+C:.
+¦   .gitattributes
+¦   .gitignore
+¦   new.json
+¦   README.md
+¦   structure.txt
+¦   Vita.Planning.slnx
+¦   
++---.github
+¦   ¦   copilot-instructions.md
+¦   ¦   
+¦   +---workflows
++---bin
+¦   +---Debug
+¦       +---net10.0
++---docs
+¦       api-new-endpoints.md
+¦       
++---obj
++---Vita.Planning.Api
+¦   ¦   appsettings.Development.json
+¦   ¦   Program.cs
+¦   ¦   Vita.Planning.Api.csproj
+¦   ¦   Vita.Planning.Api.csproj.user
+¦   ¦   
+¦   +---.vs
+¦   ¦   ¦   slnx.sqlite
+¦   ¦   ¦   VSWorkspaceState.json
+¦   ¦   ¦   
+¦   ¦   +---Vita.Planning.Api
+¦   ¦       +---v17
+¦   ¦               DocumentLayout.json
+¦   ¦               
+¦   +---bin
+¦   ¦   +---Debug
+¦   ¦   ¦   +---net10.0
+¦   ¦   ¦       ¦   appsettings.Development.json
+¦   ¦   ¦       ¦   Asp.Versioning.Abstractions.dll
+¦   ¦   ¦       ¦   Asp.Versioning.Http.dll
+¦   ¦   ¦       ¦   Asp.Versioning.Mvc.ApiExplorer.dll
+¦   ¦   ¦       ¦   Asp.Versioning.Mvc.dll
+¦   ¦   ¦       ¦   Azure.Core.dll
+¦   ¦   ¦       ¦   Azure.Identity.dll
+¦   ¦   ¦       ¦   Azure.Security.KeyVault.Certificates.dll
+¦   ¦   ¦       ¦   Azure.Security.KeyVault.Secrets.dll
+¦   ¦   ¦       ¦   ClosedXML.dll
+¦   ¦   ¦       ¦   ClosedXML.Parser.dll
+¦   ¦   ¦       ¦   Dapper.dll
+¦   ¦   ¦       ¦   DocumentFormat.OpenXml.dll
+¦   ¦   ¦       ¦   DocumentFormat.OpenXml.Framework.dll
+¦   ¦   ¦       ¦   ExcelNumberFormat.dll
+¦   ¦   ¦       ¦   Microsoft.AspNetCore.Authentication.JwtBearer.dll
+¦   ¦   ¦       ¦   Microsoft.AspNetCore.Authentication.OpenIdConnect.dll
+¦   ¦   ¦       ¦   Microsoft.AspNetCore.OpenApi.dll
+¦   ¦   ¦       ¦   Microsoft.Bcl.AsyncInterfaces.dll
+¦   ¦   ¦       ¦   Microsoft.Bcl.Cryptography.dll
+¦   ¦   ¦       ¦   Microsoft.Data.SqlClient.dll
+¦   ¦   ¦       ¦   Microsoft.EntityFrameworkCore.Abstractions.dll
+¦   ¦   ¦       ¦   Microsoft.EntityFrameworkCore.dll
+¦   ¦   ¦       ¦   Microsoft.EntityFrameworkCore.Relational.dll
+¦   ¦   ¦       ¦   Microsoft.EntityFrameworkCore.SqlServer.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Abstractions.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Client.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Client.Extensions.Msal.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Web.Certificate.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Web.Certificateless.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Web.Diagnostics.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Web.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Web.TokenAcquisition.dll
+¦   ¦   ¦       ¦   Microsoft.Identity.Web.TokenCache.dll
+¦   ¦   ¦       ¦   Microsoft.IdentityModel.Abstractions.dll
+¦   ¦   ¦       ¦   Microsoft.IdentityModel.JsonWebTokens.dll
+¦   ¦   ¦       ¦   Microsoft.IdentityModel.Logging.dll
+¦   ¦   ¦       ¦   Microsoft.IdentityModel.LoggingExtensions.dll
+¦   ¦   ¦       ¦   Microsoft.IdentityModel.Protocols.dll
+¦   ¦   ¦       ¦   Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+¦   ¦   ¦       ¦   Microsoft.IdentityModel.Tokens.dll
+¦   ¦   ¦       ¦   Microsoft.IdentityModel.Validators.dll
+¦   ¦   ¦       ¦   Microsoft.OpenApi.dll
+¦   ¦   ¦       ¦   Microsoft.SqlServer.Server.dll
+¦   ¦   ¦       ¦   RBush.dll
+¦   ¦   ¦       ¦   SixLabors.Fonts.dll
+¦   ¦   ¦       ¦   Swashbuckle.AspNetCore.Swagger.dll
+¦   ¦   ¦       ¦   Swashbuckle.AspNetCore.SwaggerGen.dll
+¦   ¦   ¦       ¦   Swashbuckle.AspNetCore.SwaggerUI.dll
+¦   ¦   ¦       ¦   System.ClientModel.dll
+¦   ¦   ¦       ¦   System.Configuration.ConfigurationManager.dll
+¦   ¦   ¦       ¦   System.IdentityModel.Tokens.Jwt.dll
+¦   ¦   ¦       ¦   System.IO.Packaging.dll
+¦   ¦   ¦       ¦   System.Memory.Data.dll
+¦   ¦   ¦       ¦   System.Security.Cryptography.ProtectedData.dll
+¦   ¦   ¦       ¦   Vita.Planning.Api.deps.json
+¦   ¦   ¦       ¦   Vita.Planning.Api.dll
+¦   ¦   ¦       ¦   Vita.Planning.Api.exe
+¦   ¦   ¦       ¦   Vita.Planning.Api.pdb
+¦   ¦   ¦       ¦   Vita.Planning.Api.runtimeconfig.json
+¦   ¦   ¦       ¦   Vita.Planning.Api.staticwebassets.endpoints.json
+¦   ¦   ¦       ¦   Vita.Planning.Application.dll
+¦   ¦   ¦       ¦   Vita.Planning.Application.pdb
+¦   ¦   ¦       ¦   Vita.Planning.Domain.dll
+¦   ¦   ¦       ¦   Vita.Planning.Domain.pdb
+¦   ¦   ¦       ¦   Vita.Planning.Infrastructure.dll
+¦   ¦   ¦       ¦   Vita.Planning.Infrastructure.pdb
+¦   ¦   ¦       ¦   
+¦   ¦   ¦       +---cs
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---de
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---es
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---fr
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---it
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---ja
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---ko
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---pl
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---pt-BR
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---ru
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---runtimes
+¦   ¦   ¦       ¦   +---unix
+¦   ¦   ¦       ¦   ¦   +---lib
+¦   ¦   ¦       ¦   ¦       +---net9.0
+¦   ¦   ¦       ¦   ¦               Microsoft.Data.SqlClient.dll
+¦   ¦   ¦       ¦   ¦               
+¦   ¦   ¦       ¦   +---win
+¦   ¦   ¦       ¦   ¦   +---lib
+¦   ¦   ¦       ¦   ¦       +---net10.0
+¦   ¦   ¦       ¦   ¦       +---net9.0
+¦   ¦   ¦       ¦   ¦               Microsoft.Data.SqlClient.dll
+¦   ¦   ¦       ¦   ¦               
+¦   ¦   ¦       ¦   +---win-arm64
+¦   ¦   ¦       ¦   ¦   +---native
+¦   ¦   ¦       ¦   ¦           Microsoft.Data.SqlClient.SNI.dll
+¦   ¦   ¦       ¦   ¦           
+¦   ¦   ¦       ¦   +---win-x64
+¦   ¦   ¦       ¦   ¦   +---native
+¦   ¦   ¦       ¦   ¦           Microsoft.Data.SqlClient.SNI.dll
+¦   ¦   ¦       ¦   ¦           
+¦   ¦   ¦       ¦   +---win-x86
+¦   ¦   ¦       ¦       +---native
+¦   ¦   ¦       ¦               Microsoft.Data.SqlClient.SNI.dll
+¦   ¦   ¦       ¦               
+¦   ¦   ¦       +---tr
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---zh-Hans
+¦   ¦   ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---zh-Hant
+¦   ¦   ¦               Microsoft.Data.SqlClient.resources.dll
+¦   ¦   ¦               
+¦   ¦   +---Release
+¦   ¦       +---net10.0
+¦   ¦           ¦   appsettings.Development.json
+¦   ¦           ¦   Asp.Versioning.Abstractions.dll
+¦   ¦           ¦   Asp.Versioning.Http.dll
+¦   ¦           ¦   Asp.Versioning.Mvc.ApiExplorer.dll
+¦   ¦           ¦   Asp.Versioning.Mvc.dll
+¦   ¦           ¦   Azure.Core.dll
+¦   ¦           ¦   Azure.Identity.dll
+¦   ¦           ¦   Azure.Security.KeyVault.Certificates.dll
+¦   ¦           ¦   Azure.Security.KeyVault.Secrets.dll
+¦   ¦           ¦   ClosedXML.dll
+¦   ¦           ¦   ClosedXML.Parser.dll
+¦   ¦           ¦   Dapper.dll
+¦   ¦           ¦   DocumentFormat.OpenXml.dll
+¦   ¦           ¦   DocumentFormat.OpenXml.Framework.dll
+¦   ¦           ¦   ExcelNumberFormat.dll
+¦   ¦           ¦   Microsoft.AspNetCore.Authentication.JwtBearer.dll
+¦   ¦           ¦   Microsoft.AspNetCore.Authentication.OpenIdConnect.dll
+¦   ¦           ¦   Microsoft.AspNetCore.OpenApi.dll
+¦   ¦           ¦   Microsoft.Bcl.AsyncInterfaces.dll
+¦   ¦           ¦   Microsoft.Bcl.Cryptography.dll
+¦   ¦           ¦   Microsoft.Data.SqlClient.dll
+¦   ¦           ¦   Microsoft.EntityFrameworkCore.Abstractions.dll
+¦   ¦           ¦   Microsoft.EntityFrameworkCore.dll
+¦   ¦           ¦   Microsoft.EntityFrameworkCore.Relational.dll
+¦   ¦           ¦   Microsoft.EntityFrameworkCore.SqlServer.dll
+¦   ¦           ¦   Microsoft.Identity.Abstractions.dll
+¦   ¦           ¦   Microsoft.Identity.Client.dll
+¦   ¦           ¦   Microsoft.Identity.Client.Extensions.Msal.dll
+¦   ¦           ¦   Microsoft.Identity.Web.Certificate.dll
+¦   ¦           ¦   Microsoft.Identity.Web.Certificateless.dll
+¦   ¦           ¦   Microsoft.Identity.Web.Diagnostics.dll
+¦   ¦           ¦   Microsoft.Identity.Web.dll
+¦   ¦           ¦   Microsoft.Identity.Web.TokenAcquisition.dll
+¦   ¦           ¦   Microsoft.Identity.Web.TokenCache.dll
+¦   ¦           ¦   Microsoft.IdentityModel.Abstractions.dll
+¦   ¦           ¦   Microsoft.IdentityModel.JsonWebTokens.dll
+¦   ¦           ¦   Microsoft.IdentityModel.Logging.dll
+¦   ¦           ¦   Microsoft.IdentityModel.LoggingExtensions.dll
+¦   ¦           ¦   Microsoft.IdentityModel.Protocols.dll
+¦   ¦           ¦   Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+¦   ¦           ¦   Microsoft.IdentityModel.Tokens.dll
+¦   ¦           ¦   Microsoft.IdentityModel.Validators.dll
+¦   ¦           ¦   Microsoft.OpenApi.dll
+¦   ¦           ¦   Microsoft.SqlServer.Server.dll
+¦   ¦           ¦   RBush.dll
+¦   ¦           ¦   SixLabors.Fonts.dll
+¦   ¦           ¦   Swashbuckle.AspNetCore.Swagger.dll
+¦   ¦           ¦   Swashbuckle.AspNetCore.SwaggerGen.dll
+¦   ¦           ¦   Swashbuckle.AspNetCore.SwaggerUI.dll
+¦   ¦           ¦   System.ClientModel.dll
+¦   ¦           ¦   System.Configuration.ConfigurationManager.dll
+¦   ¦           ¦   System.IdentityModel.Tokens.Jwt.dll
+¦   ¦           ¦   System.IO.Packaging.dll
+¦   ¦           ¦   System.Memory.Data.dll
+¦   ¦           ¦   System.Security.Cryptography.ProtectedData.dll
+¦   ¦           ¦   Vita.Planning.Api.deps.json
+¦   ¦           ¦   Vita.Planning.Api.dll
+¦   ¦           ¦   Vita.Planning.Api.exe
+¦   ¦           ¦   Vita.Planning.Api.pdb
+¦   ¦           ¦   Vita.Planning.Api.runtimeconfig.json
+¦   ¦           ¦   Vita.Planning.Api.staticwebassets.endpoints.json
+¦   ¦           ¦   Vita.Planning.Application.dll
+¦   ¦           ¦   Vita.Planning.Application.pdb
+¦   ¦           ¦   Vita.Planning.Domain.dll
+¦   ¦           ¦   Vita.Planning.Domain.pdb
+¦   ¦           ¦   Vita.Planning.Infrastructure.dll
+¦   ¦           ¦   Vita.Planning.Infrastructure.pdb
+¦   ¦           ¦   
+¦   ¦           +---cs
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---de
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---es
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---fr
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---it
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---ja
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---ko
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---pl
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---pt-BR
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---ru
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---runtimes
+¦   ¦           ¦   +---unix
+¦   ¦           ¦   ¦   +---lib
+¦   ¦           ¦   ¦       +---net9.0
+¦   ¦           ¦   ¦               Microsoft.Data.SqlClient.dll
+¦   ¦           ¦   ¦               
+¦   ¦           ¦   +---win
+¦   ¦           ¦   ¦   +---lib
+¦   ¦           ¦   ¦       +---net10.0
+¦   ¦           ¦   ¦       +---net9.0
+¦   ¦           ¦   ¦               Microsoft.Data.SqlClient.dll
+¦   ¦           ¦   ¦               
+¦   ¦           ¦   +---win-arm64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   ¦           Microsoft.Data.SqlClient.SNI.dll
+¦   ¦           ¦   ¦           
+¦   ¦           ¦   +---win-x64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   ¦           Microsoft.Data.SqlClient.SNI.dll
+¦   ¦           ¦   ¦           
+¦   ¦           ¦   +---win-x86
+¦   ¦           ¦       +---native
+¦   ¦           ¦               Microsoft.Data.SqlClient.SNI.dll
+¦   ¦           ¦               
+¦   ¦           +---tr
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---zh-Hans
+¦   ¦           ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       
+¦   ¦           +---zh-Hant
+¦   ¦                   Microsoft.Data.SqlClient.resources.dll
+¦   ¦                   
+¦   +---Controllers
+¦   ¦       ActivitiesController.cs
+¦   ¦       CapacityImportController.cs
+¦   ¦       CustomersController.cs
+¦   ¦       EmployeeCapacityOverridesController.cs
+¦   ¦       EmployeeCapacityPeriodsController.cs
+¦   ¦       EmployeeCapacityProfilesController.cs
+¦   ¦       EventHistoryControllers.cs
+¦   ¦       GraphTestController.cs
+¦   ¦       InternalPlanningCodesController.cs
+¦   ¦       LegacyImportController.cs
+¦   ¦       LookupsController.cs
+¦   ¦       OffersController.cs
+¦   ¦       OpsController.cs
+¦   ¦       PlanningMetadataImportController.cs
+¦   ¦       PlanningTargetsController.cs
+¦   ¦       ProjectLifecycleLogController.cs
+¦   ¦       ProjectMetadataController.cs
+¦   ¦       ProjectsController.cs
+¦   ¦       PublicHolidayCalendarsController.cs
+¦   ¦       ResourcePlanAuditsController.cs
+¦   ¦       ResourcePlanEntriesController.cs
+¦   ¦       ResourcePlanScenariosController.cs
+¦   ¦       ResourcePlansController.cs
+¦   ¦       ResourcePlanSnapshotsController.cs
+¦   ¦       SyncController.cs
+¦   ¦       TimeEntriesController.cs
+¦   ¦       UsersController.cs
+¦   ¦       VirkController.cs
+¦   ¦       VitaHolidayOverridesController.cs
+¦   ¦       VitaHolidaysController.cs
+¦   ¦       
+¦   +---Extensions
+¦   +---HostedServices
+¦   ¦       ScheduledSyncHostedService.cs
+¦   ¦       
+¦   +---Middleware
+¦   +---obj
+¦   ¦   ¦   project.assets.json
+¦   ¦   ¦   project.nuget.cache
+¦   ¦   ¦   Vita.Planning.Api.csproj.nuget.dgspec.json
+¦   ¦   ¦   Vita.Planning.Api.csproj.nuget.g.props
+¦   ¦   ¦   Vita.Planning.Api.csproj.nuget.g.targets
+¦   ¦   ¦   
+¦   ¦   +---Debug
+¦   ¦   ¦   +---net10.0
+¦   ¦   ¦       ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦   ¦       ¦   ApiEndpoints.json
+¦   ¦   ¦       ¦   apphost.exe
+¦   ¦   ¦       ¦   AppSettingsSchema.json
+¦   ¦   ¦       ¦   CombinedComponentSchema.json
+¦   ¦   ¦       ¦   rjsmcshtml.dswa.cache.json
+¦   ¦   ¦       ¦   rjsmrazor.dswa.cache.json
+¦   ¦   ¦       ¦   rpswa.dswa.cache.json
+¦   ¦   ¦       ¦   staticwebassets.build.endpoints.json
+¦   ¦   ¦       ¦   staticwebassets.build.json
+¦   ¦   ¦       ¦   staticwebassets.build.json.cache
+¦   ¦   ¦       ¦   staticwebassets.references.upToDateCheck.txt
+¦   ¦   ¦       ¦   staticwebassets.removed.txt
+¦   ¦   ¦       ¦   swae.build.ex.cache
+¦   ¦   ¦       ¦   Vita.Pla.56BF24E6.Up2Date
+¦   ¦   ¦       ¦   Vita.Planning.Api.AssemblyInfo.cs
+¦   ¦   ¦       ¦   Vita.Planning.Api.AssemblyInfoInputs.cache
+¦   ¦   ¦       ¦   Vita.Planning.Api.assets.cache
+¦   ¦   ¦       ¦   Vita.Planning.Api.csproj.AssemblyReference.cache
+¦   ¦   ¦       ¦   Vita.Planning.Api.csproj.BuildWithSkipAnalyzers
+¦   ¦   ¦       ¦   Vita.Planning.Api.csproj.CoreCompileInputs.cache
+¦   ¦   ¦       ¦   Vita.Planning.Api.csproj.FileListAbsolute.txt
+¦   ¦   ¦       ¦   Vita.Planning.Api.dll
+¦   ¦   ¦       ¦   Vita.Planning.Api.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦   ¦       ¦   Vita.Planning.Api.genruntimeconfig.cache
+¦   ¦   ¦       ¦   Vita.Planning.Api.GlobalUsings.g.cs
+¦   ¦   ¦       ¦   Vita.Planning.Api.MvcApplicationPartsAssemblyInfo.cache
+¦   ¦   ¦       ¦   Vita.Planning.Api.MvcApplicationPartsAssemblyInfo.cs
+¦   ¦   ¦       ¦   Vita.Planning.Api.pdb
+¦   ¦   ¦       ¦   Vita.Planning.Api.sourcelink.json
+¦   ¦   ¦       ¦   
+¦   ¦   ¦       +---EndpointInfo
+¦   ¦   ¦       ¦       Vita.Planning.Api.json
+¦   ¦   ¦       ¦       Vita.Planning.Api.OpenApiFiles.cache
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---ref
+¦   ¦   ¦       ¦       Vita.Planning.Api.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---refint
+¦   ¦   ¦       ¦       Vita.Planning.Api.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---staticwebassets
+¦   ¦   +---Release
+¦   ¦       +---net10.0
+¦   ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦           ¦   apphost.exe
+¦   ¦           ¦   AppSettingsSchema.json
+¦   ¦           ¦   CombinedComponentSchema.json
+¦   ¦           ¦   PublishOutputs.68ebfefe57.txt
+¦   ¦           ¦   rjsmcshtml.dswa.cache.json
+¦   ¦           ¦   rjsmrazor.dswa.cache.json
+¦   ¦           ¦   rpswa.dswa.cache.json
+¦   ¦           ¦   staticwebassets.build.endpoints.json
+¦   ¦           ¦   staticwebassets.build.json
+¦   ¦           ¦   staticwebassets.build.json.cache
+¦   ¦           ¦   staticwebassets.publish.endpoints.json
+¦   ¦           ¦   staticwebassets.publish.json
+¦   ¦           ¦   staticwebassets.references.upToDateCheck.txt
+¦   ¦           ¦   staticwebassets.removed.txt
+¦   ¦           ¦   swae.build.ex.cache
+¦   ¦           ¦   swae.publish.ex.cache
+¦   ¦           ¦   Vita.Pla.56BF24E6.Up2Date
+¦   ¦           ¦   Vita.Planning.Api.AssemblyInfo.cs
+¦   ¦           ¦   Vita.Planning.Api.AssemblyInfoInputs.cache
+¦   ¦           ¦   Vita.Planning.Api.assets.cache
+¦   ¦           ¦   Vita.Planning.Api.csproj.AssemblyReference.cache
+¦   ¦           ¦   Vita.Planning.Api.csproj.CoreCompileInputs.cache
+¦   ¦           ¦   Vita.Planning.Api.csproj.FileListAbsolute.txt
+¦   ¦           ¦   Vita.Planning.Api.dll
+¦   ¦           ¦   Vita.Planning.Api.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦           ¦   Vita.Planning.Api.genruntimeconfig.cache
+¦   ¦           ¦   Vita.Planning.Api.GlobalUsings.g.cs
+¦   ¦           ¦   Vita.Planning.Api.MvcApplicationPartsAssemblyInfo.cache
+¦   ¦           ¦   Vita.Planning.Api.MvcApplicationPartsAssemblyInfo.cs
+¦   ¦           ¦   Vita.Planning.Api.pdb
+¦   ¦           ¦   Vita.Planning.Api.sourcelink.json
+¦   ¦           ¦   
+¦   ¦           +---PubTmp
+¦   ¦           ¦   ¦   Vita.Planning.Api.Parameters.xml
+¦   ¦           ¦   ¦   Vita.Planning.Api.SourceManifest.xml
+¦   ¦           ¦   ¦   
+¦   ¦           ¦   +---Out
+¦   ¦           ¦       ¦   appsettings.Development.json
+¦   ¦           ¦       ¦   Asp.Versioning.Abstractions.dll
+¦   ¦           ¦       ¦   Asp.Versioning.Http.dll
+¦   ¦           ¦       ¦   Asp.Versioning.Mvc.ApiExplorer.dll
+¦   ¦           ¦       ¦   Asp.Versioning.Mvc.dll
+¦   ¦           ¦       ¦   Azure.Core.dll
+¦   ¦           ¦       ¦   Azure.Identity.dll
+¦   ¦           ¦       ¦   Azure.Security.KeyVault.Certificates.dll
+¦   ¦           ¦       ¦   Azure.Security.KeyVault.Secrets.dll
+¦   ¦           ¦       ¦   ClosedXML.dll
+¦   ¦           ¦       ¦   ClosedXML.Parser.dll
+¦   ¦           ¦       ¦   Dapper.dll
+¦   ¦           ¦       ¦   DocumentFormat.OpenXml.dll
+¦   ¦           ¦       ¦   DocumentFormat.OpenXml.Framework.dll
+¦   ¦           ¦       ¦   ExcelNumberFormat.dll
+¦   ¦           ¦       ¦   Microsoft.AspNetCore.Authentication.JwtBearer.dll
+¦   ¦           ¦       ¦   Microsoft.AspNetCore.Authentication.OpenIdConnect.dll
+¦   ¦           ¦       ¦   Microsoft.AspNetCore.OpenApi.dll
+¦   ¦           ¦       ¦   Microsoft.Bcl.AsyncInterfaces.dll
+¦   ¦           ¦       ¦   Microsoft.Bcl.Cryptography.dll
+¦   ¦           ¦       ¦   Microsoft.Data.SqlClient.dll
+¦   ¦           ¦       ¦   Microsoft.EntityFrameworkCore.Abstractions.dll
+¦   ¦           ¦       ¦   Microsoft.EntityFrameworkCore.dll
+¦   ¦           ¦       ¦   Microsoft.EntityFrameworkCore.Relational.dll
+¦   ¦           ¦       ¦   Microsoft.EntityFrameworkCore.SqlServer.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Abstractions.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Client.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Client.Extensions.Msal.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Web.Certificate.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Web.Certificateless.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Web.Diagnostics.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Web.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Web.TokenAcquisition.dll
+¦   ¦           ¦       ¦   Microsoft.Identity.Web.TokenCache.dll
+¦   ¦           ¦       ¦   Microsoft.IdentityModel.Abstractions.dll
+¦   ¦           ¦       ¦   Microsoft.IdentityModel.JsonWebTokens.dll
+¦   ¦           ¦       ¦   Microsoft.IdentityModel.Logging.dll
+¦   ¦           ¦       ¦   Microsoft.IdentityModel.LoggingExtensions.dll
+¦   ¦           ¦       ¦   Microsoft.IdentityModel.Protocols.dll
+¦   ¦           ¦       ¦   Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+¦   ¦           ¦       ¦   Microsoft.IdentityModel.Tokens.dll
+¦   ¦           ¦       ¦   Microsoft.IdentityModel.Validators.dll
+¦   ¦           ¦       ¦   Microsoft.OpenApi.dll
+¦   ¦           ¦       ¦   Microsoft.SqlServer.Server.dll
+¦   ¦           ¦       ¦   RBush.dll
+¦   ¦           ¦       ¦   SixLabors.Fonts.dll
+¦   ¦           ¦       ¦   Swashbuckle.AspNetCore.Swagger.dll
+¦   ¦           ¦       ¦   Swashbuckle.AspNetCore.SwaggerGen.dll
+¦   ¦           ¦       ¦   Swashbuckle.AspNetCore.SwaggerUI.dll
+¦   ¦           ¦       ¦   System.ClientModel.dll
+¦   ¦           ¦       ¦   System.Configuration.ConfigurationManager.dll
+¦   ¦           ¦       ¦   System.IdentityModel.Tokens.Jwt.dll
+¦   ¦           ¦       ¦   System.IO.Packaging.dll
+¦   ¦           ¦       ¦   System.Memory.Data.dll
+¦   ¦           ¦       ¦   System.Security.Cryptography.ProtectedData.dll
+¦   ¦           ¦       ¦   Vita.Planning.Api.deps.json
+¦   ¦           ¦       ¦   Vita.Planning.Api.dll
+¦   ¦           ¦       ¦   Vita.Planning.Api.exe
+¦   ¦           ¦       ¦   Vita.Planning.Api.pdb
+¦   ¦           ¦       ¦   Vita.Planning.Api.runtimeconfig.json
+¦   ¦           ¦       ¦   Vita.Planning.Api.staticwebassets.endpoints.json
+¦   ¦           ¦       ¦   Vita.Planning.Application.dll
+¦   ¦           ¦       ¦   Vita.Planning.Application.pdb
+¦   ¦           ¦       ¦   Vita.Planning.Domain.dll
+¦   ¦           ¦       ¦   Vita.Planning.Domain.pdb
+¦   ¦           ¦       ¦   Vita.Planning.Infrastructure.dll
+¦   ¦           ¦       ¦   Vita.Planning.Infrastructure.pdb
+¦   ¦           ¦       ¦   web.config
+¦   ¦           ¦       ¦   
+¦   ¦           ¦       +---cs
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---de
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---es
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---fr
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---it
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---ja
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---ko
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---pl
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---pt-BR
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---ru
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---runtimes
+¦   ¦           ¦       ¦   +---unix
+¦   ¦           ¦       ¦   ¦   +---lib
+¦   ¦           ¦       ¦   ¦       +---net9.0
+¦   ¦           ¦       ¦   ¦               Microsoft.Data.SqlClient.dll
+¦   ¦           ¦       ¦   ¦               
+¦   ¦           ¦       ¦   +---win
+¦   ¦           ¦       ¦   ¦   +---lib
+¦   ¦           ¦       ¦   ¦       +---net9.0
+¦   ¦           ¦       ¦   ¦               Microsoft.Data.SqlClient.dll
+¦   ¦           ¦       ¦   ¦               
+¦   ¦           ¦       ¦   +---win-arm64
+¦   ¦           ¦       ¦   ¦   +---native
+¦   ¦           ¦       ¦   ¦           Microsoft.Data.SqlClient.SNI.dll
+¦   ¦           ¦       ¦   ¦           
+¦   ¦           ¦       ¦   +---win-x64
+¦   ¦           ¦       ¦   ¦   +---native
+¦   ¦           ¦       ¦   ¦           Microsoft.Data.SqlClient.SNI.dll
+¦   ¦           ¦       ¦   ¦           
+¦   ¦           ¦       ¦   +---win-x86
+¦   ¦           ¦       ¦       +---native
+¦   ¦           ¦       ¦               Microsoft.Data.SqlClient.SNI.dll
+¦   ¦           ¦       ¦               
+¦   ¦           ¦       +---tr
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---zh-Hans
+¦   ¦           ¦       ¦       Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦       ¦       
+¦   ¦           ¦       +---zh-Hant
+¦   ¦           ¦               Microsoft.Data.SqlClient.resources.dll
+¦   ¦           ¦               
+¦   ¦           +---ref
+¦   ¦           ¦       Vita.Planning.Api.dll
+¦   ¦           ¦       
+¦   ¦           +---refint
+¦   ¦           ¦       Vita.Planning.Api.dll
+¦   ¦           ¦       
+¦   ¦           +---staticwebassets
+¦   +---Properties
+¦       ¦   launchSettings.json
+¦       ¦   
+¦       +---PublishProfiles
+¦               vita-planning-api-dev - Web Deploy.pubxml
+¦               vita-planning-api-dev - Web Deploy.pubxml.user
+¦               
++---Vita.Planning.Application
+¦   ¦   Vita.Planning.Application.csproj
+¦   ¦   
+¦   +---Abstractions
+¦   +---bin
+¦   ¦   +---Debug
+¦   ¦   ¦   +---net10.0
+¦   ¦   ¦           Vita.Planning.Application.deps.json
+¦   ¦   ¦           Vita.Planning.Application.dll
+¦   ¦   ¦           Vita.Planning.Application.pdb
+¦   ¦   ¦           Vita.Planning.Domain.dll
+¦   ¦   ¦           Vita.Planning.Domain.pdb
+¦   ¦   ¦           
+¦   ¦   +---Release
+¦   ¦       +---net10.0
+¦   ¦               Vita.Planning.Application.deps.json
+¦   ¦               Vita.Planning.Application.dll
+¦   ¦               Vita.Planning.Application.pdb
+¦   ¦               Vita.Planning.Domain.dll
+¦   ¦               Vita.Planning.Domain.pdb
+¦   ¦               
+¦   +---DTOs
+¦   ¦       ActivityCursorResultDto.cs
+¦   ¦       ActivityDto.cs
+¦   ¦       ActivitySyncResultDto.cs
+¦   ¦       ApproveTimeEntriesRequest.cs
+¦   ¦       AutoDistributeResourcePlanEntriesRequest.cs
+¦   ¦       BulkUpsertResourcePlanEntriesRequest.cs
+¦   ¦       BulkUpsertResourcePlanEntriesResult.cs
+¦   ¦       CallerInfo.cs
+¦   ¦       CreateEmployeeCapacityOverrideRequest.cs
+¦   ¦       CreateEmployeeCapacityPeriodRequest.cs
+¦   ¦       CreateEmployeeCapacityProfileRequest.cs
+¦   ¦       CreateInternalPlanningCodeRequest.cs
+¦   ¦       CreateOfferRequest.cs
+¦   ¦       CreatePlanningTargetRequest.cs
+¦   ¦       CreateProjectLifecycleLogRequest.cs
+¦   ¦       CreatePublicHolidayCalendarRequest.cs
+¦   ¦       CreateResourcePlanEntryRequest.cs
+¦   ¦       CreateResourcePlanRequest.cs
+¦   ¦       CreateResourcePlanScenarioRequest.cs
+¦   ¦       CreateTimeEntryRequest.cs
+¦   ¦       CreateVitaHolidayOverrideRequest.cs
+¦   ¦       CustomerDto.cs
+¦   ¦       CustomerRequests.cs
+¦   ¦       EconomicSettings.cs
+¦   ¦       EconomicTimeEntryDto.cs
+¦   ¦       EmployeeCapacityOverrideDto.cs
+¦   ¦       EmployeeCapacityPeriodDto.cs
+¦   ¦       EmployeeCapacityProfileDto.cs
+¦   ¦       EntityChangeLogDtos.cs
+¦   ¦       EventHistoryDtos.cs
+¦   ¦       ImportOffersResultDto.cs
+¦   ¦       InternalPlanningCodeDto.cs
+¦   ¦       LookupDtos.cs
+¦   ¦       MicrosoftGraphSettings.cs
+¦   ¦       MicrosoftGraphUserDto.cs
+¦   ¦       OfferDto.cs
+¦   ¦       PagedResultDto.cs
+¦   ¦       PlanningTargetCustomerRoleDtos.cs
+¦   ¦       PlanningTargetDto.cs
+¦   ¦       ProjectCursorResultDto.cs
+¦   ¦       ProjectCustomerCursorResultDto.cs
+¦   ¦       ProjectCustomerSyncResultDto.cs
+¦   ¦       ProjectDetailsDto.cs
+¦   ¦       ProjectEmployeeCursorResultDto.cs
+¦   ¦       ProjectEmployeeGroupCursorResultDto.cs
+¦   ¦       ProjectEmployeeGroupSyncResultDto.cs
+¦   ¦       ProjectEmployeeSyncResultDto.cs
+¦   ¦       ProjectGroupCursorResultDto.cs
+¦   ¦       ProjectGroupSyncResultDto.cs
+¦   ¦       ProjectLifecycleLogDto.cs
+¦   ¦       ProjectListItemDto.cs
+¦   ¦       ProjectMetadataDto.cs
+¦   ¦       ProjectStatusCursorResultDto.cs
+¦   ¦       ProjectStatusSyncResultDto.cs
+¦   ¦       ProjectSyncResultDto.cs
+¦   ¦       PublicHolidayCalendarDto.cs
+¦   ¦       ResourcePlanAuditDto.cs
+¦   ¦       ResourcePlanDto.cs
+¦   ¦       ResourcePlanEntryDto.cs
+¦   ¦       ResourcePlanScenarioDto.cs
+¦   ¦       ResourcePlanSnapshotDtos.cs
+¦   ¦       SaveResourcePlanEntriesPeriodRequest.cs
+¦   ¦       SourceEconomicActivityDto.cs
+¦   ¦       SourceEconomicProjectCustomerDto.cs
+¦   ¦       SourceEconomicProjectDto.cs
+¦   ¦       SourceEconomicProjectEmployeeDto.cs
+¦   ¦       SourceEconomicProjectEmployeeGroupDto.cs
+¦   ¦       SourceEconomicProjectGroupDto.cs
+¦   ¦       SourceEconomicProjectStatusDto.cs
+¦   ¦       SourceUserDto.cs
+¦   ¦       SyncRunAllResultDto.cs
+¦   ¦       UpdateEmployeeCapacityOverrideRequest.cs
+¦   ¦       UpdateEmployeeCapacityPeriodRequest.cs
+¦   ¦       UpdateEmployeeCapacityProfileRequest.cs
+¦   ¦       UpdateInternalPlanningCodeRequest.cs
+¦   ¦       UpdateOfferRequest.cs
+¦   ¦       UpdatePlanningTargetRequest.cs
+¦   ¦       UpdatePublicHolidayCalendarRequest.cs
+¦   ¦       UpdateResourcePlanEntryRequest.cs
+¦   ¦       UpdateResourcePlanRequest.cs
+¦   ¦       UpdateResourcePlanScenarioRequest.cs
+¦   ¦       UpdateTimeEntryRequest.cs
+¦   ¦       UpdateVitaHolidayOverrideRequest.cs
+¦   ¦       UpsertProjectMetadataRequest.cs
+¦   ¦       UserSyncResultDto.cs
+¦   ¦       VirkDtos.cs
+¦   ¦       VirkSettings.cs
+¦   ¦       VitaHolidayDto.cs
+¦   ¦       VitaHolidayOverrideDto.cs
+¦   ¦       
+¦   +---Interfaces
+¦   ¦       IActivitySyncService.cs
+¦   ¦       ICustomerService.cs
+¦   ¦       IEconomicActivitySourceClient.cs
+¦   ¦       IEconomicProjectCustomerSourceClient.cs
+¦   ¦       IEconomicProjectEmployeeGroupSourceClient.cs
+¦   ¦       IEconomicProjectEmployeeSourceClient.cs
+¦   ¦       IEconomicProjectGroupSourceClient.cs
+¦   ¦       IEconomicProjectSourceClient.cs
+¦   ¦       IEconomicProjectStatusSourceClient.cs
+¦   ¦       IEconomicTimeEntryClient.cs
+¦   ¦       IEmployeeCapacityOverrideService.cs
+¦   ¦       IEmployeeCapacityPeriodService.cs
+¦   ¦       IEmployeeCapacityProfileService.cs
+¦   ¦       IEntityChangeLogService.cs
+¦   ¦       IEventHistoryServices.cs
+¦   ¦       IInternalPlanningCodeService.cs
+¦   ¦       IInternalUserSourceClient.cs
+¦   ¦       ILookupService.cs
+¦   ¦       IMicrosoftGraphUserSourceClient.cs
+¦   ¦       IOfferService.cs
+¦   ¦       IPlanningTargetCustomerRoleService.cs
+¦   ¦       IPlanningTargetService.cs
+¦   ¦       IProjectCustomerSyncService.cs
+¦   ¦       IProjectEmployeeGroupSyncService.cs
+¦   ¦       IProjectEmployeeSyncService.cs
+¦   ¦       IProjectGroupSyncService.cs
+¦   ¦       IProjectLifecycleLogService.cs
+¦   ¦       IProjectMetadataService.cs
+¦   ¦       IProjectQueryService.cs
+¦   ¦       IProjectStatusSyncService.cs
+¦   ¦       IProjectSyncService.cs
+¦   ¦       IPublicHolidayCalendarService.cs
+¦   ¦       IResourcePlanAuditService.cs
+¦   ¦       IResourcePlanEntryService.cs
+¦   ¦       IResourcePlanScenarioService.cs
+¦   ¦       IResourcePlanService.cs
+¦   ¦       IResourcePlanSnapshotService.cs
+¦   ¦       ITimeEntryService.cs
+¦   ¦       IUserSyncService.cs
+¦   ¦       IVirkService.cs
+¦   ¦       IVitaHolidayService.cs
+¦   ¦       
+¦   +---Mappings
+¦   +---obj
+¦   ¦   ¦   project.assets.json
+¦   ¦   ¦   project.nuget.cache
+¦   ¦   ¦   Vita.Planning.Application.csproj.nuget.dgspec.json
+¦   ¦   ¦   Vita.Planning.Application.csproj.nuget.g.props
+¦   ¦   ¦   Vita.Planning.Application.csproj.nuget.g.targets
+¦   ¦   ¦   
+¦   ¦   +---Debug
+¦   ¦   ¦   +---net10.0
+¦   ¦   ¦       ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦   ¦       ¦   Vita.Pla.654DAB6C.Up2Date
+¦   ¦   ¦       ¦   Vita.Planning.Application.AssemblyInfo.cs
+¦   ¦   ¦       ¦   Vita.Planning.Application.AssemblyInfoInputs.cache
+¦   ¦   ¦       ¦   Vita.Planning.Application.assets.cache
+¦   ¦   ¦       ¦   Vita.Planning.Application.csproj.AssemblyReference.cache
+¦   ¦   ¦       ¦   Vita.Planning.Application.csproj.BuildWithSkipAnalyzers
+¦   ¦   ¦       ¦   Vita.Planning.Application.csproj.CoreCompileInputs.cache
+¦   ¦   ¦       ¦   Vita.Planning.Application.csproj.FileListAbsolute.txt
+¦   ¦   ¦       ¦   Vita.Planning.Application.dll
+¦   ¦   ¦       ¦   Vita.Planning.Application.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦   ¦       ¦   Vita.Planning.Application.GlobalUsings.g.cs
+¦   ¦   ¦       ¦   Vita.Planning.Application.pdb
+¦   ¦   ¦       ¦   Vita.Planning.Application.sourcelink.json
+¦   ¦   ¦       ¦   
+¦   ¦   ¦       +---ref
+¦   ¦   ¦       ¦       Vita.Planning.Application.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---refint
+¦   ¦   ¦               Vita.Planning.Application.dll
+¦   ¦   ¦               
+¦   ¦   +---Release
+¦   ¦       +---net10.0
+¦   ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦           ¦   Vita.Pla.654DAB6C.Up2Date
+¦   ¦           ¦   Vita.Planning.Application.AssemblyInfo.cs
+¦   ¦           ¦   Vita.Planning.Application.AssemblyInfoInputs.cache
+¦   ¦           ¦   Vita.Planning.Application.assets.cache
+¦   ¦           ¦   Vita.Planning.Application.csproj.AssemblyReference.cache
+¦   ¦           ¦   Vita.Planning.Application.csproj.CoreCompileInputs.cache
+¦   ¦           ¦   Vita.Planning.Application.csproj.FileListAbsolute.txt
+¦   ¦           ¦   Vita.Planning.Application.dll
+¦   ¦           ¦   Vita.Planning.Application.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦           ¦   Vita.Planning.Application.GlobalUsings.g.cs
+¦   ¦           ¦   Vita.Planning.Application.pdb
+¦   ¦           ¦   Vita.Planning.Application.sourcelink.json
+¦   ¦           ¦   
+¦   ¦           +---ref
+¦   ¦           ¦       Vita.Planning.Application.dll
+¦   ¦           ¦       
+¦   ¦           +---refint
+¦   ¦                   Vita.Planning.Application.dll
+¦   ¦                   
+¦   +---Queries
+¦   +---Services
+¦   +---Validators
++---Vita.Planning.Domain
+¦   ¦   Vita.Planning.Domain.csproj
+¦   ¦   
+¦   +---bin
+¦   ¦   +---Debug
+¦   ¦   ¦   +---net10.0
+¦   ¦   ¦           Vita.Planning.Domain.deps.json
+¦   ¦   ¦           Vita.Planning.Domain.dll
+¦   ¦   ¦           Vita.Planning.Domain.pdb
+¦   ¦   ¦           
+¦   ¦   +---Release
+¦   ¦       +---net10.0
+¦   ¦               Vita.Planning.Domain.deps.json
+¦   ¦               Vita.Planning.Domain.dll
+¦   ¦               Vita.Planning.Domain.pdb
+¦   ¦               
+¦   +---Entities
+¦   +---Enums
+¦   ¦       PeriodType.cs
+¦   ¦       SyncRunStatus.cs
+¦   ¦       
+¦   +---Interfaces
+¦   +---obj
+¦   ¦   ¦   project.assets.json
+¦   ¦   ¦   project.nuget.cache
+¦   ¦   ¦   Vita.Planning.Domain.csproj.nuget.dgspec.json
+¦   ¦   ¦   Vita.Planning.Domain.csproj.nuget.g.props
+¦   ¦   ¦   Vita.Planning.Domain.csproj.nuget.g.targets
+¦   ¦   ¦   
+¦   ¦   +---Debug
+¦   ¦   ¦   +---net10.0
+¦   ¦   ¦       ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦   ¦       ¦   Vita.Planning.Domain.AssemblyInfo.cs
+¦   ¦   ¦       ¦   Vita.Planning.Domain.AssemblyInfoInputs.cache
+¦   ¦   ¦       ¦   Vita.Planning.Domain.assets.cache
+¦   ¦   ¦       ¦   Vita.Planning.Domain.csproj.BuildWithSkipAnalyzers
+¦   ¦   ¦       ¦   Vita.Planning.Domain.csproj.CoreCompileInputs.cache
+¦   ¦   ¦       ¦   Vita.Planning.Domain.csproj.FileListAbsolute.txt
+¦   ¦   ¦       ¦   Vita.Planning.Domain.dll
+¦   ¦   ¦       ¦   Vita.Planning.Domain.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦   ¦       ¦   Vita.Planning.Domain.GlobalUsings.g.cs
+¦   ¦   ¦       ¦   Vita.Planning.Domain.pdb
+¦   ¦   ¦       ¦   Vita.Planning.Domain.sourcelink.json
+¦   ¦   ¦       ¦   
+¦   ¦   ¦       +---ref
+¦   ¦   ¦       ¦       Vita.Planning.Domain.dll
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---refint
+¦   ¦   ¦               Vita.Planning.Domain.dll
+¦   ¦   ¦               
+¦   ¦   +---Release
+¦   ¦       +---net10.0
+¦   ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦           ¦   Vita.Planning.Domain.AssemblyInfo.cs
+¦   ¦           ¦   Vita.Planning.Domain.AssemblyInfoInputs.cache
+¦   ¦           ¦   Vita.Planning.Domain.assets.cache
+¦   ¦           ¦   Vita.Planning.Domain.csproj.CoreCompileInputs.cache
+¦   ¦           ¦   Vita.Planning.Domain.csproj.FileListAbsolute.txt
+¦   ¦           ¦   Vita.Planning.Domain.dll
+¦   ¦           ¦   Vita.Planning.Domain.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦           ¦   Vita.Planning.Domain.GlobalUsings.g.cs
+¦   ¦           ¦   Vita.Planning.Domain.pdb
+¦   ¦           ¦   Vita.Planning.Domain.sourcelink.json
+¦   ¦           ¦   
+¦   ¦           +---ref
+¦   ¦           ¦       Vita.Planning.Domain.dll
+¦   ¦           ¦       
+¦   ¦           +---refint
+¦   ¦                   Vita.Planning.Domain.dll
+¦   ¦                   
+¦   +---ValueObjects
++---Vita.Planning.Infrastructure
+    ¦   Vita.Planning.Infrastructure.csproj
+    ¦   
+    +---bin
+    ¦   +---Debug
+    ¦   ¦   +---net10.0
+    ¦   ¦           Vita.Planning.Application.dll
+    ¦   ¦           Vita.Planning.Application.pdb
+    ¦   ¦           Vita.Planning.Domain.dll
+    ¦   ¦           Vita.Planning.Domain.pdb
+    ¦   ¦           Vita.Planning.Infrastructure.deps.json
+    ¦   ¦           Vita.Planning.Infrastructure.dll
+    ¦   ¦           Vita.Planning.Infrastructure.pdb
+    ¦   ¦           Vita.Planning.Infrastructure.runtimeconfig.json
+    ¦   ¦           
+    ¦   +---Release
+    ¦       +---net10.0
+    ¦               Vita.Planning.Application.dll
+    ¦               Vita.Planning.Application.pdb
+    ¦               Vita.Planning.Domain.dll
+    ¦               Vita.Planning.Domain.pdb
+    ¦               Vita.Planning.Infrastructure.deps.json
+    ¦               Vita.Planning.Infrastructure.dll
+    ¦               Vita.Planning.Infrastructure.pdb
+    ¦               Vita.Planning.Infrastructure.runtimeconfig.json
+    ¦               
+    +---Clients
+    ¦       .gitkeep
+    ¦       EconomicActivitySourceClient.cs
+    ¦       EconomicProjectCustomerSourceClient.cs
+    ¦       EconomicProjectEmployeeGroupSourceClient.cs
+    ¦       EconomicProjectEmployeeSourceClient.cs
+    ¦       EconomicProjectGroupSourceClient.cs
+    ¦       EconomicProjectSourceClient.cs
+    ¦       EconomicProjectStatusSourceClient.cs
+    ¦       EconomicTimeEntryClient.cs
+    ¦       MicrosoftGraphUserSourceClient.cs
+    ¦       VirkService.cs
+    ¦       
+    +---Configurations
+    ¦       EmployeeCapacityOverrideConfiguration.cs
+    ¦       EmployeeCapacityPeriodConfiguration.cs
+    ¦       EmployeeCapacityProfileConfiguration.cs
+    ¦       InternalPlanningCodeConfiguration.cs
+    ¦       OfferConfiguration.cs
+    ¦       PlanningTargetConfiguration.cs
+    ¦       ProjectLifecycleLogConfiguration.cs
+    ¦       ProjectMetadataConfiguration.cs
+    ¦       PublicHolidayCalendarConfiguration.cs
+    ¦       ResourcePlanAuditConfiguration.cs
+    ¦       ResourcePlanConfiguration.cs
+    ¦       ResourcePlanEntryConfiguration.cs
+    ¦       ResourcePlanScenarioConfiguration.cs
+    ¦       ResourcePlanSnapshotConfiguration.cs
+    ¦       VitaHolidayConfiguration.cs
+    ¦       VitaHolidayOverrideConfiguration.cs
+    ¦       
+    +---Data
+    ¦   ¦   PlanningDbContext.cs
+    ¦   ¦   
+    ¦   +---Entities
+    ¦           BusinessEvent.cs
+    ¦           Customer.cs
+    ¦           EmployeeCapacityOverride.cs
+    ¦           EmployeeCapacityPeriod.cs
+    ¦           EmployeeCapacityProfile.cs
+    ¦           ExtActivity.cs
+    ¦           ExtProject.cs
+    ¦           ExtProjectCustomer.cs
+    ¦           ExtProjectEmployee.cs
+    ¦           ExtProjectEmployeeGroup.cs
+    ¦           ExtProjectGroup.cs
+    ¦           ExtProjectStatus.cs
+    ¦           ExtUser.cs
+    ¦           InternalPlanningCode.cs
+    ¦           LookupEntities.cs
+    ¦           Offer.cs
+    ¦           OpsSyncError.cs
+    ¦           OpsSyncRun.cs
+    ¦           PlanningTarget.cs
+    ¦           PlanningTargetCustomerRole.cs
+    ¦           ProjectLifecycleLog.cs
+    ¦           ProjectMetadata.cs
+    ¦           PublicHolidayCalendar.cs
+    ¦           ResourcePlan.cs
+    ¦           ResourcePlanAudit.cs
+    ¦           ResourcePlanEntry.cs
+    ¦           ResourcePlanEntryHistory.cs
+    ¦           ResourcePlanScenario.cs
+    ¦           ResourcePlanSnapshot.cs
+    ¦           ResourcePlanSnapshotEntry.cs
+    ¦           SegmentEntities.cs
+    ¦           VitaHoliday.cs
+    ¦           VitaHolidayOverride.cs
+    ¦           
+    +---DependencyInjection
+    +---obj
+    ¦   ¦   project.assets.json
+    ¦   ¦   project.nuget.cache
+    ¦   ¦   Vita.Planning.Infrastructure.csproj.nuget.dgspec.json
+    ¦   ¦   Vita.Planning.Infrastructure.csproj.nuget.g.props
+    ¦   ¦   Vita.Planning.Infrastructure.csproj.nuget.g.targets
+    ¦   ¦   
+    ¦   +---Debug
+    ¦   ¦   +---net10.0
+    ¦   ¦       ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+    ¦   ¦       ¦   AppSettingsSchema.json
+    ¦   ¦       ¦   CombinedComponentSchema.json
+    ¦   ¦       ¦   Vita.Pla.74BEEDF5.Up2Date
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.AssemblyInfo.cs
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.AssemblyInfoInputs.cache
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.assets.cache
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.csproj.AssemblyReference.cache
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.csproj.BuildWithSkipAnalyzers
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.csproj.CoreCompileInputs.cache
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.csproj.FileListAbsolute.txt
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.dll
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.genruntimeconfig.cache
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.GlobalUsings.g.cs
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.pdb
+    ¦   ¦       ¦   Vita.Planning.Infrastructure.sourcelink.json
+    ¦   ¦       ¦   
+    ¦   ¦       +---ref
+    ¦   ¦       ¦       Vita.Planning.Infrastructure.dll
+    ¦   ¦       ¦       
+    ¦   ¦       +---refint
+    ¦   ¦               Vita.Planning.Infrastructure.dll
+    ¦   ¦               
+    ¦   +---Release
+    ¦       +---net10.0
+    ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+    ¦           ¦   AppSettingsSchema.json
+    ¦           ¦   CombinedComponentSchema.json
+    ¦           ¦   Vita.Pla.74BEEDF5.Up2Date
+    ¦           ¦   Vita.Planning.Infrastructure.AssemblyInfo.cs
+    ¦           ¦   Vita.Planning.Infrastructure.AssemblyInfoInputs.cache
+    ¦           ¦   Vita.Planning.Infrastructure.assets.cache
+    ¦           ¦   Vita.Planning.Infrastructure.csproj.AssemblyReference.cache
+    ¦           ¦   Vita.Planning.Infrastructure.csproj.CoreCompileInputs.cache
+    ¦           ¦   Vita.Planning.Infrastructure.csproj.FileListAbsolute.txt
+    ¦           ¦   Vita.Planning.Infrastructure.dll
+    ¦           ¦   Vita.Planning.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+    ¦           ¦   Vita.Planning.Infrastructure.genruntimeconfig.cache
+    ¦           ¦   Vita.Planning.Infrastructure.GlobalUsings.g.cs
+    ¦           ¦   Vita.Planning.Infrastructure.pdb
+    ¦           ¦   Vita.Planning.Infrastructure.sourcelink.json
+    ¦           ¦   
+    ¦           +---ref
+    ¦           ¦       Vita.Planning.Infrastructure.dll
+    ¦           ¦       
+    ¦           +---refint
+    ¦                   Vita.Planning.Infrastructure.dll
+    ¦                   
+    +---Repositories
+    +---Services
+    ¦       ActivitySyncService.cs
+    ¦       CustomerService.cs
+    ¦       EmployeeCapacityOverrideService.cs
+    ¦       EmployeeCapacityPeriodService.cs
+    ¦       EmployeeCapacityProfileService.cs
+    ¦       EntityChangeLogService.cs
+    ¦       EventHistoryServices.cs
+    ¦       InternalPlanningCodeService.cs
+    ¦       InternalUserSourceClient.cs
+    ¦       ISyncRunService.cs
+    ¦       LookupService.cs
+    ¦       MergedEconomicGraphUserSourceClient.cs
+    ¦       OfferService.cs
+    ¦       PlanningTargetCustomerRoleService.cs
+    ¦       PlanningTargetService.cs
+    ¦       ProjectCustomerSyncService.cs
+    ¦       ProjectEmployeeGroupSyncService.cs
+    ¦       ProjectEmployeeSyncService.cs
+    ¦       ProjectGroupSyncService.cs
+    ¦       ProjectLifecycleLogService.cs
+    ¦       ProjectMetadataService.cs
+    ¦       ProjectQueryService.cs
+    ¦       ProjectStatusSyncService.cs
+    ¦       ProjectSyncService.cs
+    ¦       PublicHolidayCalendarService.cs
+    ¦       ResourcePlanAuditService.cs
+    ¦       ResourcePlanEntryService.cs
+    ¦       ResourcePlanScenarioService.cs
+    ¦       ResourcePlanService.cs
+    ¦       ResourcePlanSnapshotService.cs
+    ¦       SyncRunService.cs
+    ¦       TimeEntryService.cs
+    ¦       UserSyncService.cs
+    ¦       VitaHolidayService.cs
+    ¦       
+    +---Sql

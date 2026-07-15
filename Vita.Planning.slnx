@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Vita.Planning.Api/Vita.Planning.Api.csproj" />
+  <Project Path="Vita.Planning.Application/Vita.Planning.Application.csproj" Id="b7c16852-3965-4563-ae44-a4f1f5a45de1" />
+  <Project Path="Vita.Planning.Domain/Vita.Planning.Domain.csproj" Id="c02a6a61-5828-4a9e-8da6-65b27efe3489" />
+  <Project Path="Vita.Planning.Infrastructure/Vita.Planning.Infrastructure.csproj" Id="04407a42-4ec1-47cf-b984-6536fe6cf722" />
+</Solution>
