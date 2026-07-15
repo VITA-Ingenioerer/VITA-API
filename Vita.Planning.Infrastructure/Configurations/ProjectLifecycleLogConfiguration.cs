@@ -22,6 +22,7 @@ public sealed class ProjectLifecycleLogConfiguration : IEntityTypeConfiguration<
         builder.Property(x => x.SnapshotJson).HasColumnName("snapshot_json");
         builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(100);
         builder.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+        builder.Property(x => x.CorrelationId).HasColumnName("correlation_id");
 
         builder.HasIndex(x => new { x.TargetType, x.ProjectNumber });
         builder.HasIndex(x => new { x.TargetType, x.OfferId });

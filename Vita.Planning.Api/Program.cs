@@ -181,6 +181,9 @@ builder.Services.Configure<ProjectWorkspaceSettings>(
 builder.Services.Configure<CapacityDefaultsSettings>(
     builder.Configuration.GetSection("CapacityDefaults"));
 
+builder.Services.Configure<AbsenceSettings>(
+    builder.Configuration.GetSection("Absence"));
+
 
 builder.Services.AddHttpClient<IMicrosoftGraphUserSourceClient, MicrosoftGraphUserSourceClient>(client =>
 {
@@ -221,6 +224,7 @@ builder.Services.AddScoped<IEmployeeCapacityPeriodService, EmployeeCapacityPerio
 builder.Services.AddScoped<IEmployeeCapacityProfileService, EmployeeCapacityProfileService>();
 builder.Services.AddScoped<ICapacityScheduleQueryService, CapacityScheduleQueryService>();
 builder.Services.AddScoped<ITimeEntryService, TimeEntryService>();
+builder.Services.AddScoped<IAbsenceRegistrationService, AbsenceRegistrationService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<ICompanyContactService, CompanyContactService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
@@ -228,6 +232,7 @@ builder.Services.AddScoped<IResourcePlanEntryHistoryService, ResourcePlanEntryHi
 builder.Services.AddScoped<IBusinessEventService, BusinessEventService>();
 builder.Services.AddScoped<IEntityChangeLogService, EntityChangeLogService>();
 builder.Services.AddScoped<IErrorLogService, ErrorLogService>();
+builder.Services.AddScoped<ICorrelationTraceService, CorrelationTraceService>();
 builder.Services.AddScoped<IResourcePlanSnapshotService, ResourcePlanSnapshotService>();
 builder.Services.AddHostedService<ScheduledSyncHostedService>();
 builder.Services.AddHostedService<SharePointWorkspacePollerService>();
@@ -250,6 +255,12 @@ builder.Services.AddHttpClient<IProjectWorkspaceProvisioningClient, ProjectWorks
 {
     client.Timeout = TimeSpan.FromSeconds(90);
 });
+
+builder.Services.AddHttpClient<IOutlookCalendarClient, OutlookCalendarClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+builder.Services.AddScoped<IOutOfOfficeCalendarService, OutOfOfficeCalendarService>();
 
 var app = builder.Build();
 

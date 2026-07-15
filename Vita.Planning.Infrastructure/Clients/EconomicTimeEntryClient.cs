@@ -38,16 +38,34 @@ public sealed class EconomicTimeEntryClient : IEconomicTimeEntryClient
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<EconomicTimeEntryDto>> GetTimeEntriesAsync(
+    public Task<IReadOnlyList<EconomicTimeEntryDto>> GetTimeEntriesAsync(
         int employeeNumber,
         DateTime fromDate,
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var all = new List<EconomicTimeEntryDto>();
-        string? cursor = null;
+        var filter = BuildDateRangeFilter($"employeeNumber$eq:{employeeNumber}", fromDate, toDate);
+        return FetchByFilterAsync(filter, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<EconomicTimeEntryDto>> GetTimeEntriesByProjectAsync(
+        int projectNumber,
+        DateTime fromDate,
+        DateTime? toDate = null,
+        int? employeeNumber = null,
+        CancellationToken cancellationToken = default)
+    {
+        var baseFilter = employeeNumber.HasValue
+            ? $"projectNumber$eq:{projectNumber}$and:employeeNumber$eq:{employeeNumber.Value}"
+            : $"projectNumber$eq:{projectNumber}";
+        var filter = BuildDateRangeFilter(baseFilter, fromDate, toDate);
+        return FetchByFilterAsync(filter, cancellationToken);
+    }
+
+    private static string BuildDateRangeFilter(string baseFilter, DateTime fromDate, DateTime? toDate)
+    {
         var fromUtc = NormalizeFilterDate(fromDate, isEndOfDay: false);
-        var filter = $"employeeNumber$eq:{employeeNumber}$and:date$gte:{fromUtc:yyyy-MM-ddTHH:mm:ssZ}";
+        var filter = $"{baseFilter}$and:date$gte:{fromUtc:yyyy-MM-ddTHH:mm:ssZ}";
 
         if (toDate.HasValue)
         {
@@ -55,6 +73,13 @@ public sealed class EconomicTimeEntryClient : IEconomicTimeEntryClient
             filter += $"$and:date$lte:{toUtc:yyyy-MM-ddTHH:mm:ssZ}";
         }
 
+        return filter;
+    }
+
+    private async Task<IReadOnlyList<EconomicTimeEntryDto>> FetchByFilterAsync(string filter, CancellationToken cancellationToken)
+    {
+        var all = new List<EconomicTimeEntryDto>();
+        string? cursor = null;
         var encodedFilter = Uri.EscapeDataString(filter);
 
         do

@@ -13,10 +13,12 @@ namespace Vita.Planning.Api.Middleware;
 public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next)
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context, IErrorLogService errorLogService, ICorrelationContext correlationContext)
@@ -31,18 +33,26 @@ public sealed class ExceptionHandlingMiddleware
                 ? CallerInfo.FromClaimsPrincipal(context.User)
                 : null;
 
-            await errorLogService.LogAsync(new RecordOpsErrorRequest
+            try
             {
-                ExceptionType = ex.GetType().FullName ?? ex.GetType().Name,
-                Message = ex.Message,
-                StackTrace = ex.ToString(),
-                RequestMethod = context.Request.Method,
-                RequestPath = context.Request.Path,
-                StatusCode = StatusCodes.Status500InternalServerError,
-                CallerUserId = caller?.UserId,
-                CallerName = caller?.Name,
-                CorrelationId = correlationContext.CorrelationId
-            });
+                await errorLogService.LogAsync(new RecordOpsErrorRequest
+                {
+                    ExceptionType = ex.GetType().FullName ?? ex.GetType().Name,
+                    Message = ex.Message,
+                    StackTrace = ex.ToString(),
+                    RequestMethod = context.Request.Method,
+                    RequestPath = context.Request.Path,
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    CallerUserId = caller?.UserId,
+                    CallerName = caller?.Name,
+                    CorrelationId = correlationContext.CorrelationId
+                });
+            }
+            catch (Exception logEx)
+            {
+                // Never let a broken error-logging path turn a normal 500 into an unhandled crash.
+                _logger.LogError(logEx, "Failed to persist error log entry for correlation id {CorrelationId}", correlationContext.CorrelationId);
+            }
 
             if (context.Response.HasStarted)
             {

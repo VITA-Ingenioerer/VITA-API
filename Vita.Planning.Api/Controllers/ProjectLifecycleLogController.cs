@@ -21,14 +21,16 @@ public sealed class ProjectLifecycleLogController : ControllerBase
     /// Get log entries, optionally filtered by targetType, projectNumber, offerId, or eventType.
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<ProjectLifecycleLogDto>>> GetAll(
+    public async Task<ActionResult<PagedResultDto<ProjectLifecycleLogDto>>> GetAll(
         [FromQuery] string? targetType = null,
         [FromQuery] int? projectNumber = null,
         [FromQuery] int? offerId = null,
         [FromQuery] string? eventType = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAllAsync(targetType, projectNumber, offerId, eventType, cancellationToken);
+        var result = await _service.GetAllAsync(targetType, projectNumber, offerId, eventType, page, pageSize, cancellationToken);
         return Ok(result);
     }
 

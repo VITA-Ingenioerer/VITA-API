@@ -86,8 +86,9 @@ public sealed class BusinessEventsController : ControllerBase
         [FromQuery] string? createdByUserId,
         [FromQuery] DateTime? fromUtc,
         [FromQuery] DateTime? toUtc,
-        [FromQuery] int take,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         var result = await _service.QueryAsync(
             entityType,
@@ -97,7 +98,8 @@ public sealed class BusinessEventsController : ControllerBase
             createdByUserId,
             fromUtc,
             toUtc,
-            take <= 0 ? 200 : take,
+            page,
+            pageSize,
             cancellationToken);
 
         return Ok(result);
@@ -149,11 +151,12 @@ public sealed class SyncRunHistoryController : ControllerBase
         [FromQuery] string? status,
         [FromQuery] DateTime? fromUtc,
         [FromQuery] DateTime? toUtc,
-        [FromQuery] int take,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         var result = await _service.QueryRunsAsync(
-            sourceSystem, status, fromUtc, toUtc, take <= 0 ? 200 : take, cancellationToken);
+            sourceSystem, status, fromUtc, toUtc, page, pageSize, cancellationToken);
 
         return Ok(result);
     }
@@ -183,10 +186,31 @@ public sealed class OpsErrorsController : ControllerBase
         [FromQuery] Guid? correlationId,
         [FromQuery] DateTime? fromUtc,
         [FromQuery] DateTime? toUtc,
-        [FromQuery] int take,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _service.QueryAsync(correlationId, fromUtc, toUtc, take <= 0 ? 200 : take, cancellationToken);
+        var result = await _service.QueryAsync(correlationId, fromUtc, toUtc, page, pageSize, cancellationToken);
+        return Ok(result);
+    }
+}
+
+[ApiController]
+[Route("api/history/trace")]
+[Authorize(Policy = "PlannerAdmin")]
+public sealed class CorrelationTraceController : ControllerBase
+{
+    private readonly ICorrelationTraceService _service;
+
+    public CorrelationTraceController(ICorrelationTraceService service)
+    {
+        _service = service;
+    }
+
+    [HttpGet("{correlationId:guid}")]
+    public async Task<IActionResult> Get(Guid correlationId, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetTraceAsync(correlationId, cancellationToken);
         return Ok(result);
     }
 }

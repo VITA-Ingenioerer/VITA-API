@@ -10,19 +10,26 @@ namespace Vita.Planning.Infrastructure.Services;
 public sealed class ProjectLifecycleLogService : IProjectLifecycleLogService
 {
     private readonly PlanningDbContext _dbContext;
+    private readonly ICorrelationContext _correlationContext;
 
-    public ProjectLifecycleLogService(PlanningDbContext dbContext)
+    public ProjectLifecycleLogService(PlanningDbContext dbContext, ICorrelationContext correlationContext)
     {
         _dbContext = dbContext;
+        _correlationContext = correlationContext;
     }
 
-    public async Task<IReadOnlyList<ProjectLifecycleLogDto>> GetAllAsync(
+    public async Task<PagedResultDto<ProjectLifecycleLogDto>> GetAllAsync(
         string? targetType = null,
         int? projectNumber = null,
         int? offerId = null,
         string? eventType = null,
+        int page = 1,
+        int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
+
         var query = _dbContext.ProjectLifecycleLogs.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(targetType))
@@ -45,9 +52,33 @@ public sealed class ProjectLifecycleLogService : IProjectLifecycleLogService
             query = query.Where(x => x.EventType == eventType.Trim());
         }
 
-        return await query
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .ThenByDescending(x => x.ProjectLifecycleLogId)
+        query = query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.ProjectLifecycleLogId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(MapToDtoExpression())
+            .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<ProjectLifecycleLogDto>
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
+            Items = items
+        };
+    }
+
+    public async Task<IReadOnlyList<ProjectLifecycleLogDto>> GetByCorrelationIdAsync(
+        Guid correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.ProjectLifecycleLogs
+            .AsNoTracking()
+            .Where(x => x.CorrelationId == correlationId)
+            .OrderBy(x => x.CreatedAtUtc)
             .Select(MapToDtoExpression())
             .ToListAsync(cancellationToken);
     }
@@ -102,7 +133,8 @@ public sealed class ProjectLifecycleLogService : IProjectLifecycleLogService
             NewValue = NormalizeNullable(request.NewValue),
             SnapshotJson = NormalizeNullable(request.SnapshotJson),
             CreatedBy = NormalizeNullable(request.CreatedBy),
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = DateTime.UtcNow,
+            CorrelationId = _correlationContext.CorrelationId
         };
 
         _dbContext.ProjectLifecycleLogs.Add(entity);
@@ -127,7 +159,8 @@ public sealed class ProjectLifecycleLogService : IProjectLifecycleLogService
         NewValue = entity.NewValue,
         SnapshotJson = entity.SnapshotJson,
         CreatedBy = entity.CreatedBy,
-        CreatedAtUtc = entity.CreatedAtUtc
+        CreatedAtUtc = entity.CreatedAtUtc,
+        CorrelationId = entity.CorrelationId
     };
 
     private static Expression<Func<ProjectLifecycleLog, ProjectLifecycleLogDto>> MapToDtoExpression() =>
@@ -144,6 +177,7 @@ public sealed class ProjectLifecycleLogService : IProjectLifecycleLogService
             NewValue = entity.NewValue,
             SnapshotJson = entity.SnapshotJson,
             CreatedBy = entity.CreatedBy,
-            CreatedAtUtc = entity.CreatedAtUtc
+            CreatedAtUtc = entity.CreatedAtUtc,
+            CorrelationId = entity.CorrelationId
         };
 }

@@ -4,16 +4,21 @@ namespace Vita.Planning.Application.Interfaces;
 
 public interface ISyncRunService
 {
-    Task<IReadOnlyList<SyncRunDto>> QueryRunsAsync(
+    Task<PagedResultDto<SyncRunDto>> QueryRunsAsync(
         string? sourceSystem = null,
         string? status = null,
         DateTime? fromUtc = null,
         DateTime? toUtc = null,
-        int take = 200,
+        int page = 1,
+        int pageSize = 50,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SyncErrorDto>> GetErrorsByRunIdAsync(
         long syncRunId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SyncRunDto>> GetByCorrelationIdAsync(
+        Guid correlationId,
         CancellationToken cancellationToken = default);
 
     Task<long> StartRunAsync(

@@ -12,11 +12,16 @@ public sealed class UsersController : ControllerBase
 {
     private readonly PlanningDbContext _dbContext;
     private readonly IUserSyncService _syncService;
+    private readonly IOutOfOfficeCalendarService _outOfOfficeService;
 
-    public UsersController(PlanningDbContext dbContext, IUserSyncService syncService)
+    public UsersController(
+        PlanningDbContext dbContext,
+        IUserSyncService syncService,
+        IOutOfOfficeCalendarService outOfOfficeService)
     {
         _dbContext = dbContext;
         _syncService = syncService;
+        _outOfOfficeService = outOfOfficeService;
     }
 
     [HttpGet]
@@ -124,6 +129,28 @@ public sealed class UsersController : ControllerBase
         }
 
         return Ok(resourcePlan);
+    }
+
+    [HttpPost("{employeeId:int}/calendar/out-of-office")]
+    public async Task<ActionResult<OutOfOfficeCalendarEventDto>> CreateOutOfOffice(
+        int employeeId,
+        [FromBody] CreateOutOfOfficeCalendarEventRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var caller = CallerInfo.FromClaimsPrincipal(User);
+            var result = await _outOfOfficeService.CreateAsync(employeeId, request, caller, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, result);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("sync")]

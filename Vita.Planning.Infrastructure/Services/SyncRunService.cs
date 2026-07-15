@@ -9,21 +9,25 @@ namespace Vita.Planning.Infrastructure.Services;
 public sealed class SyncRunService : ISyncRunService
 {
     private readonly PlanningDbContext _db;
+    private readonly ICorrelationContext _correlationContext;
 
-    public SyncRunService(PlanningDbContext db)
+    public SyncRunService(PlanningDbContext db, ICorrelationContext correlationContext)
     {
         _db = db;
+        _correlationContext = correlationContext;
     }
 
-    public async Task<IReadOnlyList<SyncRunDto>> QueryRunsAsync(
+    public async Task<PagedResultDto<SyncRunDto>> QueryRunsAsync(
         string? sourceSystem = null,
         string? status = null,
         DateTime? fromUtc = null,
         DateTime? toUtc = null,
-        int take = 200,
+        int page = 1,
+        int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        take = take < 1 ? 200 : Math.Min(take, 1000);
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
 
         var query = _db.SyncRuns.AsNoTracking();
 
@@ -47,28 +51,54 @@ public sealed class SyncRunService : ISyncRunService
             query = query.Where(x => x.StartedAtUtc <= toUtc.Value);
         }
 
-        return await query
-            .OrderByDescending(x => x.StartedAtUtc)
-            .ThenByDescending(x => x.SyncRunId)
-            .Take(take)
-            .Select(x => new SyncRunDto
-            {
-                SyncRunId = x.SyncRunId,
-                SourceSystem = x.SourceSystem,
-                ResourceName = x.ResourceName,
-                StartedAtUtc = x.StartedAtUtc,
-                CompletedAtUtc = x.CompletedAtUtc,
-                Status = x.Status,
-                RowsRead = x.RowsRead,
-                RowsInserted = x.RowsInserted,
-                RowsUpdated = x.RowsUpdated,
-                RowsDeleted = x.RowsDeleted,
-                ErrorCount = x.ErrorCount,
-                InitiatedBy = x.InitiatedBy,
-                Notes = x.Notes
-            })
+        query = query.OrderByDescending(x => x.StartedAtUtc).ThenByDescending(x => x.SyncRunId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => MapToDtoExpression(x))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<SyncRunDto>
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
+            Items = items
+        };
+    }
+
+    public async Task<IReadOnlyList<SyncRunDto>> GetByCorrelationIdAsync(
+        Guid correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.SyncRuns
+            .AsNoTracking()
+            .Where(x => x.CorrelationId == correlationId)
+            .OrderBy(x => x.StartedAtUtc)
+            .Select(x => MapToDtoExpression(x))
             .ToListAsync(cancellationToken);
     }
+
+    private static SyncRunDto MapToDtoExpression(OpsSyncRun x) => new()
+    {
+        SyncRunId = x.SyncRunId,
+        SourceSystem = x.SourceSystem,
+        ResourceName = x.ResourceName,
+        StartedAtUtc = x.StartedAtUtc,
+        CompletedAtUtc = x.CompletedAtUtc,
+        Status = x.Status,
+        RowsRead = x.RowsRead,
+        RowsInserted = x.RowsInserted,
+        RowsUpdated = x.RowsUpdated,
+        RowsDeleted = x.RowsDeleted,
+        ErrorCount = x.ErrorCount,
+        InitiatedBy = x.InitiatedBy,
+        Notes = x.Notes,
+        CorrelationId = x.CorrelationId
+    };
 
     public async Task<IReadOnlyList<SyncErrorDto>> GetErrorsByRunIdAsync(
         long syncRunId,
@@ -109,7 +139,8 @@ public sealed class SyncRunService : ISyncRunService
             Status = "running",
             InitiatedBy = initiatedBy,
             Notes = notes,
-            ErrorCount = 0
+            ErrorCount = 0,
+            CorrelationId = _correlationContext.CorrelationId
         };
 
         _db.SyncRuns.Add(run);

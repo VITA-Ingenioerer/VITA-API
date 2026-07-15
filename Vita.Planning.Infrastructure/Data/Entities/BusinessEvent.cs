@@ -27,8 +27,10 @@ public sealed class BusinessEvent
     [Column("entity_type")]
     public string EntityType { get; set; } = string.Empty;
 
+    // 500, not 100: external identifiers stored here aren't all short numeric codes —
+    // Microsoft Graph event/item "immutable IDs" alone run well past 150 characters.
     [Required]
-    [MaxLength(100)]
+    [MaxLength(500)]
     [Column("entity_id")]
     public string EntityId { get; set; } = string.Empty;
 

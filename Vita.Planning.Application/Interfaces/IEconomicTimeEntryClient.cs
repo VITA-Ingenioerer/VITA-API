@@ -10,6 +10,17 @@ public interface IEconomicTimeEntryClient
         DateTime? toDate = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lists time entries booked against a project across all employees (e.g. an
+    /// absence/"Fravær" project), optionally narrowed to one employee.
+    /// </summary>
+    Task<IReadOnlyList<EconomicTimeEntryDto>> GetTimeEntriesByProjectAsync(
+        int projectNumber,
+        DateTime fromDate,
+        DateTime? toDate = null,
+        int? employeeNumber = null,
+        CancellationToken cancellationToken = default);
+
     Task<EconomicTimeEntryDto?> GetTimeEntryAsync(int number, CancellationToken cancellationToken = default);
 
     Task<int> CreateTimeEntryAsync(CreateTimeEntryRequest request, CancellationToken cancellationToken = default);

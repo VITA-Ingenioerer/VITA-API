@@ -48,4 +48,7 @@ public sealed class ProjectLifecycleLog
 
     [Column("created_at_utc")]
     public DateTime CreatedAtUtc { get; set; }
+
+    [Column("correlation_id")]
+    public Guid? CorrelationId { get; set; }
 }

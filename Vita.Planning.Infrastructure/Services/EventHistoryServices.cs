@@ -313,7 +313,7 @@ public sealed class BusinessEventService : IBusinessEventService
         return MapToDto(entity);
     }
 
-    public async Task<IReadOnlyList<BusinessEventDto>> QueryAsync(
+    public async Task<PagedResultDto<BusinessEventDto>> QueryAsync(
         string? entityType = null,
         string? entityId = null,
         int? planningTargetId = null,
@@ -321,10 +321,12 @@ public sealed class BusinessEventService : IBusinessEventService
         string? createdByUserId = null,
         DateTime? fromUtc = null,
         DateTime? toUtc = null,
-        int take = 200,
+        int page = 1,
+        int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        take = take < 1 ? 200 : Math.Min(take, 1000);
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
 
         var query = _dbContext.BusinessEvents.AsNoTracking();
 
@@ -367,12 +369,23 @@ public sealed class BusinessEventService : IBusinessEventService
             query = query.Where(x => x.CreatedAtUtc <= toUtc.Value);
         }
 
-        return await query
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .ThenByDescending(x => x.BusinessEventId)
-            .Take(take)
+        query = query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.BusinessEventId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(x => MapToDtoExpression(x))
             .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<BusinessEventDto>
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
+            Items = items
+        };
     }
 
     public async Task<IReadOnlyList<BusinessEventDto>> GetByEntityAsync(

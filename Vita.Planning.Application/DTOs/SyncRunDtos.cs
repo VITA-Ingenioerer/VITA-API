@@ -15,6 +15,7 @@ public sealed class SyncRunDto
     public int ErrorCount { get; set; }
     public string? InitiatedBy { get; set; }
     public string? Notes { get; set; }
+    public Guid? CorrelationId { get; set; }
 }
 
 public sealed class SyncErrorDto

@@ -41,14 +41,16 @@ public sealed class ErrorLogService : IErrorLogService
         return MapToDto(entity);
     }
 
-    public async Task<IReadOnlyList<OpsErrorDto>> QueryAsync(
+    public async Task<PagedResultDto<OpsErrorDto>> QueryAsync(
         Guid? correlationId = null,
         DateTime? fromUtc = null,
         DateTime? toUtc = null,
-        int take = 200,
+        int page = 1,
+        int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        take = take < 1 ? 200 : Math.Min(take, 1000);
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
 
         var query = _dbContext.OpsErrors.AsNoTracking();
 
@@ -67,12 +69,23 @@ public sealed class ErrorLogService : IErrorLogService
             query = query.Where(x => x.CreatedAtUtc <= toUtc.Value);
         }
 
-        return await query
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .ThenByDescending(x => x.OpsErrorId)
-            .Take(take)
+        query = query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.OpsErrorId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(x => MapToDtoExpression(x))
             .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<OpsErrorDto>
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
+            Items = items
+        };
     }
 
     private static string? Truncate(string? value, int maxLength) =>

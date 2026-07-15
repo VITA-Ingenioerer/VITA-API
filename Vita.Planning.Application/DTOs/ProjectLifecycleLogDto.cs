@@ -14,4 +14,5 @@ public sealed class ProjectLifecycleLogDto
     public string? SnapshotJson { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+    public Guid? CorrelationId { get; set; }
 }

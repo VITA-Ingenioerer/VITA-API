@@ -20,7 +20,7 @@ public interface IResourcePlanEntryHistoryService
 public interface IBusinessEventService
 {
     Task<BusinessEventDto> RecordAsync(RecordBusinessEventRequest request, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<BusinessEventDto>> QueryAsync(
+    Task<PagedResultDto<BusinessEventDto>> QueryAsync(
         string? entityType = null,
         string? entityId = null,
         int? planningTargetId = null,
@@ -28,7 +28,8 @@ public interface IBusinessEventService
         string? createdByUserId = null,
         DateTime? fromUtc = null,
         DateTime? toUtc = null,
-        int take = 200,
+        int page = 1,
+        int pageSize = 50,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BusinessEventDto>> GetByEntityAsync(string entityType, string entityId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BusinessEventDto>> GetByPlanningTargetAsync(int planningTargetId, CancellationToken cancellationToken = default);

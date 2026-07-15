@@ -45,4 +45,7 @@ public sealed class OpsSyncRun
 
     [Column("notes")]
     public string? Notes { get; set; }
+
+    [Column("correlation_id")]
+    public Guid? CorrelationId { get; set; }
 }
