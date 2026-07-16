@@ -11,17 +11,20 @@ public sealed class CorrelationTraceService : ICorrelationTraceService
     private readonly IErrorLogService _errorLogService;
     private readonly ISyncRunService _syncRunService;
     private readonly IProjectLifecycleLogService _projectLifecycleLogService;
+    private readonly IResourcePlanEntryHistoryService _resourcePlanEntryHistoryService;
 
     public CorrelationTraceService(
         IBusinessEventService businessEventService,
         IErrorLogService errorLogService,
         ISyncRunService syncRunService,
-        IProjectLifecycleLogService projectLifecycleLogService)
+        IProjectLifecycleLogService projectLifecycleLogService,
+        IResourcePlanEntryHistoryService resourcePlanEntryHistoryService)
     {
         _businessEventService = businessEventService;
         _errorLogService = errorLogService;
         _syncRunService = syncRunService;
         _projectLifecycleLogService = projectLifecycleLogService;
+        _resourcePlanEntryHistoryService = resourcePlanEntryHistoryService;
     }
 
     public async Task<CorrelationTraceDto> GetTraceAsync(Guid correlationId, CancellationToken cancellationToken = default)
@@ -30,8 +33,9 @@ public sealed class CorrelationTraceService : ICorrelationTraceService
         var errorsTask = _errorLogService.QueryAsync(correlationId, page: 1, pageSize: MaxEntriesPerSource, cancellationToken: cancellationToken);
         var syncRunsTask = _syncRunService.GetByCorrelationIdAsync(correlationId, cancellationToken);
         var lifecycleLogTask = _projectLifecycleLogService.GetByCorrelationIdAsync(correlationId, cancellationToken);
+        var resourcePlanEntryHistoryTask = _resourcePlanEntryHistoryService.GetByCorrelationIdAsync(correlationId, cancellationToken);
 
-        await Task.WhenAll(businessEventsTask, errorsTask, syncRunsTask, lifecycleLogTask);
+        await Task.WhenAll(businessEventsTask, errorsTask, syncRunsTask, lifecycleLogTask, resourcePlanEntryHistoryTask);
 
         var syncRuns = syncRunsTask.Result;
         var syncErrorsByRun = await Task.WhenAll(
@@ -43,6 +47,7 @@ public sealed class CorrelationTraceService : ICorrelationTraceService
         entries.AddRange(syncRuns.Select(MapSyncRun));
         entries.AddRange(syncErrorsByRun.SelectMany(x => x).Select(MapSyncError));
         entries.AddRange(lifecycleLogTask.Result.Select(MapLifecycleLog));
+        entries.AddRange(resourcePlanEntryHistoryTask.Result.Select(MapResourcePlanEntryHistory));
 
         return new CorrelationTraceDto
         {
@@ -117,5 +122,18 @@ public sealed class CorrelationTraceService : ICorrelationTraceService
         EntityId = x.ProjectNumber?.ToString() ?? x.OfferId?.ToString(),
         Actor = x.CreatedBy,
         SourceId = x.ProjectLifecycleLogId
+    };
+
+    private static TraceEntryDto MapResourcePlanEntryHistory(ResourcePlanEntryHistoryDto x) => new()
+    {
+        TimestampUtc = x.ChangedAtUtc,
+        Source = TraceSource.ResourcePlanEntryHistory,
+        Title = $"{x.ChangeType} — {x.OldHours ?? 0}h → {x.NewHours ?? 0}h",
+        Description = x.ChangeReason ?? x.NewDescription,
+        Severity = "info",
+        EntityType = "ResourcePlanEntry",
+        EntityId = x.ResourcePlanEntryId?.ToString() ?? x.ResourcePlanId.ToString(),
+        Actor = x.ChangedByName ?? x.ChangedByUserId,
+        SourceId = x.ResourcePlanEntryHistoryId
     };
 }

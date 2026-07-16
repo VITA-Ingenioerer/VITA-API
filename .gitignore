@@ -10,6 +10,12 @@
 # Business workbooks don't belong in source control
 *.xlsm
 
+# Environment/local override settings files can hold real secrets — never commit them.
+# appsettings.json (the base, non-secret file) is intentionally NOT ignored.
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+
 # User-specific files
 *.rsuser
 *.suo

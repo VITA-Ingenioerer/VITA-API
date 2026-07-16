@@ -16,6 +16,24 @@ public sealed class ResourcePlanEntryHistoryController : ControllerBase
         _service = service;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Query(
+        [FromQuery] int? employeeId,
+        [FromQuery] int? planningTargetId,
+        [FromQuery] string? changeType,
+        [FromQuery] string? changedByUserId,
+        [FromQuery] DateTime? fromUtc,
+        [FromQuery] DateTime? toUtc,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _service.QueryAsync(
+            employeeId, planningTargetId, changeType, changedByUserId, fromUtc, toUtc, page, pageSize, cancellationToken);
+
+        return Ok(result);
+    }
+
     [HttpGet("by-entry/{entryId:int}")]
     public async Task<IActionResult> GetByEntry(int entryId, CancellationToken cancellationToken)
     {

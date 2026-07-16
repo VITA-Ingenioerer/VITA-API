@@ -9,7 +9,8 @@ public enum TraceSource
     Error,
     SyncRun,
     SyncError,
-    LifecycleLog
+    LifecycleLog,
+    ResourcePlanEntryHistory
 }
 
 public sealed class TraceEntryDto

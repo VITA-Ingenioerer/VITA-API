@@ -51,6 +51,96 @@ public sealed class ResourcePlanEntryHistoryService : IResourcePlanEntryHistoryS
         return MapToDto(entity);
     }
 
+    public async Task<PagedResultDto<ResourcePlanEntryHistoryDto>> QueryAsync(
+        int? employeeId = null,
+        int? planningTargetId = null,
+        string? changeType = null,
+        string? changedByUserId = null,
+        DateTime? fromUtc = null,
+        DateTime? toUtc = null,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 50 : Math.Min(pageSize, 200);
+
+        var query = _dbContext.ResourcePlanEntryHistories.AsNoTracking();
+
+        if (employeeId.HasValue)
+        {
+            query = query.Where(x => x.EmployeeId == employeeId.Value);
+        }
+
+        if (planningTargetId.HasValue)
+        {
+            query = query.Where(x => x.PlanningTargetId == planningTargetId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(changeType))
+        {
+            var normalizedChangeType = changeType.Trim();
+            query = query.Where(x => x.ChangeType == normalizedChangeType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(changedByUserId))
+        {
+            var normalizedChangedByUserId = changedByUserId.Trim();
+            query = query.Where(x => x.ChangedByUserId == normalizedChangedByUserId);
+        }
+
+        if (fromUtc.HasValue)
+        {
+            query = query.Where(x => x.ChangedAtUtc >= fromUtc.Value);
+        }
+
+        if (toUtc.HasValue)
+        {
+            query = query.Where(x => x.ChangedAtUtc <= toUtc.Value);
+        }
+
+        query = query.OrderByDescending(x => x.ChangedAtUtc).ThenByDescending(x => x.ResourcePlanEntryHistoryId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new ResourcePlanEntryHistoryDto
+            {
+                ResourcePlanEntryHistoryId = x.ResourcePlanEntryHistoryId,
+                ResourcePlanEntryId = x.ResourcePlanEntryId,
+                ResourcePlanId = x.ResourcePlanId,
+                EmployeeId = x.EmployeeId,
+                ScenarioId = x.ScenarioId,
+                PlanningTargetId = x.PlanningTargetId,
+                PlanDate = x.PlanDate,
+                OldHours = x.OldHours,
+                NewHours = x.NewHours,
+                OldDescription = x.OldDescription,
+                NewDescription = x.NewDescription,
+                OldIsManualOverride = x.OldIsManualOverride,
+                NewIsManualOverride = x.NewIsManualOverride,
+                ChangeType = x.ChangeType,
+                ChangeReason = x.ChangeReason,
+                ChangedByUserId = x.ChangedByUserId,
+                ChangedByName = x.ChangedByName,
+                ChangedAtUtc = x.ChangedAtUtc,
+                SourceModule = x.SourceModule,
+                CorrelationId = x.CorrelationId,
+                MetadataJson = x.MetadataJson
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResultDto<ResourcePlanEntryHistoryDto>
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
+            Items = items
+        };
+    }
+
     public async Task<IReadOnlyList<ResourcePlanEntryHistoryDto>> GetByEntryIdAsync(
         int resourcePlanEntryId,
         CancellationToken cancellationToken = default)
@@ -355,8 +445,10 @@ public sealed class BusinessEventService : IBusinessEventService
 
         if (!string.IsNullOrWhiteSpace(eventType))
         {
+            // Substring match, same reasoning as ProjectLifecycleLogService — event types are
+            // namespaced (e.g. "OfferConvertedToProject") and callers often only know a fragment.
             var normalizedEventType = eventType.Trim();
-            query = query.Where(x => x.EventType == normalizedEventType);
+            query = query.Where(x => x.EventType.Contains(normalizedEventType));
         }
 
         if (fromUtc.HasValue)

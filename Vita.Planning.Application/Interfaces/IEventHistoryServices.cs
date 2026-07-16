@@ -5,6 +5,16 @@ namespace Vita.Planning.Application.Interfaces;
 public interface IResourcePlanEntryHistoryService
 {
     Task<ResourcePlanEntryHistoryDto> RecordAsync(RecordResourcePlanEntryHistoryRequest request, CancellationToken cancellationToken = default);
+    Task<PagedResultDto<ResourcePlanEntryHistoryDto>> QueryAsync(
+        int? employeeId = null,
+        int? planningTargetId = null,
+        string? changeType = null,
+        string? changedByUserId = null,
+        DateTime? fromUtc = null,
+        DateTime? toUtc = null,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ResourcePlanEntryHistoryDto>> GetByEntryIdAsync(int resourcePlanEntryId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ResourcePlanEntryHistoryDto>> GetByEmployeeAsync(int employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ResourcePlanEntryHistoryDto>> GetByPlanningTargetAsync(int planningTargetId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);

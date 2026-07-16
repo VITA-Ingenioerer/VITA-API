@@ -216,6 +216,16 @@ public sealed class ProjectWorkspaceProvisioningClient : IProjectWorkspaceProvis
                 await LogStepAsync(mainProjectNumber, initiatedBy, "WorkspaceStep:CreateOutlookFolder", "Failed", ex.Message, cancellationToken);
             }
         }
+        else
+        {
+            // Every other skip/failure path in this method leaves a trace; this one didn't —
+            // ProjectWorkspace:ProjectMailboxEmailTemplate missing/blank for this year silently
+            // produced no folder and no record of why, which is exactly what made it look like
+            // nothing was even attempted.
+            const string skippedMessage = "Outlook folder not created — ProjectWorkspace:ProjectMailboxEmailTemplate is not configured for this year.";
+            warnings.Add(skippedMessage);
+            await LogStepAsync(mainProjectNumber, initiatedBy, "WorkspaceStep:CreateOutlookFolder", "Skipped", skippedMessage, cancellationToken);
+        }
 
         return new ProjectWorkspaceProvisioningResult
         {

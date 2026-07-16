@@ -49,7 +49,10 @@ public sealed class ProjectLifecycleLogService : IProjectLifecycleLogService
 
         if (!string.IsNullOrWhiteSpace(eventType))
         {
-            query = query.Where(x => x.EventType == eventType.Trim());
+            // Substring match — event types are namespaced like "WorkspaceStep:CreateGroup",
+            // and callers frequently want "all WorkspaceStep:* rows" without knowing every suffix.
+            var normalizedEventType = eventType.Trim();
+            query = query.Where(x => x.EventType.Contains(normalizedEventType));
         }
 
         query = query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.ProjectLifecycleLogId);
