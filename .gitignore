@@ -10,6 +10,11 @@
 # Business workbooks don't belong in source control
 *.xlsm
 
+# Local manual-publish output (dotnet publish / zip deploy) — not source, and now
+# superseded by the GitHub Actions deploy workflows for develop/main.
+publish-prod/
+*.zip
+
 # Environment/local override settings files can hold real secrets — never commit them.
 # appsettings.json (the base, non-secret file) is intentionally NOT ignored.
 appsettings.Development.json

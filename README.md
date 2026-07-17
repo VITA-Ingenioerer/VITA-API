@@ -150,12 +150,15 @@ or for auto-rebuild-on-save (VS Code's rough equivalent of Hot Reload):
 dotnet watch run --project Vita.Planning.Api
 ```
 
-**Publishing to Azure from the terminal.** The `.pubxml` under `PublishProfiles/` is a Visual
-Studio/Web-Deploy artifact and generally needs Web Deploy tooling installed to drive from the
-CLI, so the more portable terminal path is `dotnet publish` + `az webapp deploy` (zip deploy) —
+**Publishing to Azure from the terminal.** Normal deploys go through GitHub Actions now — see
+[Deployment (CI/CD)](#deployment-cicd) below — this manual path is a break-glass fallback for
+when you need to push a build without waiting on CI. The `.pubxml` under `PublishProfiles/` is a
+Visual Studio/Web-Deploy artifact and generally needs Web Deploy tooling installed to drive from
+the CLI, so the more portable terminal path is `dotnet publish` + `az webapp deploy` (zip deploy) —
 this project's Azure CLI is already installed and `.vscode/settings.json` already points the
 VS Code Azure App Service extension at the same target, if you'd rather deploy from its GUI
-instead:
+instead. Swap `--name vita-planning-api-dev` for `--name vita-planning-api-prod` (same resource
+group) to target Prod instead of Dev:
 
 ```bash
 az login
@@ -178,15 +181,62 @@ Same caveat as the Visual Studio publish flow: this deploys the app, not its sec
 the App Service's Application Settings (see below) are already populated before or after your
 first CLI deploy, or the deployed app will start and immediately fail.
 
-## Publishing to Azure
+## Deployment (CI/CD)
 
-The `vita-planning-api-dev - Web Deploy.pubxml` publish profile
-(`Vita.Planning.Api/Properties/PublishProfiles/`) targets the `vita-planning-api-dev` App
-Service in resource group `rg-vita-bigben-dev`. Visual Studio's **Publish** button still works
-mechanically — but the deployed package no longer carries secrets with it (that's the point),
-so the App Service itself must have the same five secret keys configured independently:
+There are two environments, each its own Azure App Service in resource group
+`rg-vita-bigben-dev`, each driven by its own git branch:
 
-1. Azure Portal → **App Services → vita-planning-api-dev → Settings → Environment variables**
+| Branch | Environment | App Service | Workflow |
+|---|---|---|---|
+| `develop` | Dev | `vita-planning-api-dev` | [`deploy-dev.yml`](.github/workflows/deploy-dev.yml) |
+| `main` | Prod | `vita-planning-api-prod` | [`deploy-prod.yml`](.github/workflows/deploy-prod.yml) |
+
+**Everyday flow:** branch off `develop` for a change → open a PR back into `develop` → merging
+(or pushing directly) to `develop` auto-deploys Dev. Once it's verified there, open a PR from
+`develop` into `main` → merging deploys Prod the same way. Nothing is deployed unless one of these
+two branches actually moves — feature branches and PRs by themselves don't trigger anything.
+
+Both workflows do the same thing: `dotnet publish` the API, then push the build to the matching
+App Service using [`azure/webapps-deploy`](https://github.com/Azure/webapps-deploy) authenticated
+with that app's **publish profile** — a credentials file Azure already generates per App Service
+(no Azure AD app registration or stored password involved; it only grants deploy access to that
+one App Service).
+
+**One-time setup (per environment), if the secret isn't already in GitHub:**
+
+1. Azure Portal → **App Services → `vita-planning-api-dev`** (or `-prod`) → **Overview** →
+   **Download publish profile**. This saves a `.PublishSettings` XML file — treat it like a
+   password (it grants deploy access to that app).
+2. GitHub → this repo → **Settings → Secrets and variables → Actions → New repository secret**.
+3. Name it `AZURE_WEBAPP_PUBLISH_PROFILE_DEV` (or `AZURE_WEBAPP_PUBLISH_PROFILE_PROD`), and paste
+   the entire contents of the downloaded file as the value.
+4. Repeat for the other environment. Both secrets must exist before either workflow can deploy.
+
+If a publish profile is ever regenerated/rotated in the Portal, the old one stops working — just
+repeat the steps above with the freshly downloaded file to update the GitHub secret.
+
+**Watching a deploy:** GitHub → **Actions** tab → the run matching your push. A green check means
+the App Service was updated; a red X means it failed before touching Azure (most likely: the
+secret is missing/stale) or during deploy (check the "Deploy to Azure Web App" step's log).
+
+**Rollback:** revert the bad commit and push (or merge) again — that re-triggers the same
+workflow with the reverted code. There's no separate "undo deploy" step; the workflow always
+deploys whatever is currently at the tip of the branch.
+
+**Reminder:** the workflows only ship code. The five secret keys below live independently in each
+App Service's own configuration and are *not* touched by a deploy — see the next section, and set
+them up for `vita-planning-api-prod` too if you haven't yet (it's a separate App Service from
+`vita-planning-api-dev`, so it needs its own copy).
+
+## App Service configuration (secrets)
+
+Visual Studio's **Publish** button (via the `vita-planning-api-dev - Web Deploy.pubxml` under
+`Vita.Planning.Api/Properties/PublishProfiles/`) still works mechanically too — but whichever way
+code reaches an App Service, the deployed package no longer carries secrets with it (that's the
+point), so **each** App Service (`vita-planning-api-dev` *and* `vita-planning-api-prod`) needs the
+same five secret keys configured independently:
+
+1. Azure Portal → **App Services → *(dev or prod)* → Settings → Environment variables**
    (Configuration blade).
 2. Add each secret as an **application setting**, using `__` (double underscore) in place of
    `:` for nested keys — that's the ASP.NET Core convention for environment-variable-style
@@ -194,21 +244,21 @@ so the App Service itself must have the same five secret keys configured indepen
 
    | Name | Value |
    |---|---|
-   | `ConnectionStrings__PlanningDatabase` | same connection string as local |
+   | `ConnectionStrings__PlanningDatabase` | connection string for that environment's database |
    | `Economic__AppSecretToken` | e-conomic app secret |
    | `Economic__AgreementGrantToken` | e-conomic agreement grant token |
    | `Virk__Password` | Virk service password |
    | `MicrosoftGraph__ClientSecret` | Graph client secret |
 
-   If `vita-planning-api-dev` used to work before the cleanup, it's likely these were never
-   set independently — the app was relying on the (now-deleted) `appsettings.Development.json`
+   If an App Service used to work before the cleanup, it's likely these were never set
+   independently — the app was relying on the (now-deleted) `appsettings.Development.json`
    being bundled into every publish, which also meant secrets were being redeployed to Azure
-   on every publish. Worth checking this blade before your next publish; if these are missing,
-   the app will publish successfully but crash on startup (500s / "Application Error").
+   on every publish. Worth checking this blade before your next deploy; if these are missing,
+   the app will deploy successfully but crash on startup (500s / "Application Error").
 3. Also confirm **App Service → Configuration → General settings** does *not* have
    `ASPNETCORE_ENVIRONMENT=Development` set — with `appsettings.json` now covering the
    non-secret baseline, the app should run in `Production` (the App Service default) so
-   Swagger UI stays off and the stricter `PlannerAdmin`/fallback auth policy applies.
+   Swagger UI stays off and the stricter `PlannerAccess`/fallback auth policy applies.
 4. For anything beyond a small dev instance, prefer **Key Vault references**
    (`@Microsoft.KeyVault(SecretUri=...)` as the app setting value) over raw values in App
    Service configuration — same `__` naming, but the secret itself lives in Key Vault with its
