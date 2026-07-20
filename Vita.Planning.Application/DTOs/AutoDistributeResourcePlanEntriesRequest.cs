@@ -34,6 +34,9 @@ public sealed class AutoDistributeResourcePlanEntryItemRequest : IValidatableObj
     [MaxLength(200)]
     public string? ChangedBy { get; set; }
 
+    /// <summary>Must be one of the activities assigned to PlanningTargetId's project (ext.project_activities), or null.</summary>
+    public int? ProjectActivityId { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (ToDate < FromDate)

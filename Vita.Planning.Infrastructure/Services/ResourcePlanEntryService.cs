@@ -732,15 +732,22 @@ public sealed class ResourcePlanEntryService : IResourcePlanEntryService
                     throw new InvalidOperationException("ToDate must be greater than or equal to FromDate.");
                 }
 
+                await RequireValidProjectActivityAsync(distribution.ProjectActivityId, distribution.PlanningTargetId, cancellationToken);
+
                 resourcePlans.TryGetValue(distribution.ResourcePlanId, out var resourcePlan);
 
                 var employeeDailyHours = await _capacityScheduleQueryService.GetEffectiveDailyHoursAsync(
                     resourcePlan!.EmployeeId, distribution.FromDate, distribution.ToDate, cancellationToken);
 
                 var targetHoursByDate = BuildAutoDistribution(distribution, holidayLookup, employeeDailyHours);
+                // Scoped to this distribution's own activity bucket too — without
+                // this, two distributions for the same target/date range but
+                // different activities (or one with, one without) would each see
+                // the other's entries as "existing" and clobber them.
                 var existingEntries = await _dbContext.ResourcePlanEntries
                     .Where(x => x.ResourcePlanId == distribution.ResourcePlanId)
                     .Where(x => x.PlanningTargetId == distribution.PlanningTargetId)
+                    .Where(x => x.ProjectActivityId == distribution.ProjectActivityId)
                     .Where(x => x.PlanDate >= distribution.FromDate && x.PlanDate <= distribution.ToDate)
                     .OrderBy(x => x.PlanDate)
                     .ThenBy(x => x.ResourcePlanEntryId)
@@ -773,6 +780,7 @@ public sealed class ResourcePlanEntryService : IResourcePlanEntryService
                     entryToKeep.Hours = targetHours;
                     entryToKeep.Description = NormalizeNullable(distribution.Description);
                     entryToKeep.IsManualOverride = distribution.IsManualOverride;
+                    entryToKeep.ProjectActivityId = distribution.ProjectActivityId;
                     entryToKeep.UpdatedBy = actor;
                     entryToKeep.UpdatedAt = DateTime.UtcNow;
                     touchedIds.Add(entryToKeep.ResourcePlanEntryId);
@@ -791,6 +799,7 @@ public sealed class ResourcePlanEntryService : IResourcePlanEntryService
                         Hours = allocation.Value,
                         Description = NormalizeNullable(distribution.Description),
                         IsManualOverride = distribution.IsManualOverride,
+                        ProjectActivityId = distribution.ProjectActivityId,
                         CreatedBy = actor,
                         CreatedAt = DateTime.UtcNow
                     };

@@ -7,7 +7,7 @@ namespace Vita.Planning.Api.Controllers;
 
 [ApiController]
 [Route("api/project-lifecycle-log")]
-[Authorize(Policy = "PlannerAdmin")]
+[Authorize(Policy = "PlannerAccess")]
 public sealed class ProjectLifecycleLogController : ControllerBase
 {
     private readonly IProjectLifecycleLogService _service;

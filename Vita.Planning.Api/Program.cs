@@ -16,6 +16,10 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
 
+var requireGlobalAuthentication =
+    builder.Configuration.GetValue<bool>(
+        "Authentication:RequireGlobalAuthentication");
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("PlannerAccess", policy =>
@@ -24,24 +28,15 @@ builder.Services.AddAuthorization(options =>
         policy.RequireScope("Planner.Access");
     });
 
-    // Gates the observability/history endpoints — they expose old/new diffs
-    // and caller identities, so ordinary Planner.Access is not enough.
-    // Requires a "Planner.Admin" scope to be added to the AAD app registration.
-    options.AddPolicy("PlannerAdmin", policy =>
+    if (requireGlobalAuthentication)
     {
-        policy.RequireAuthenticatedUser();
-        policy.RequireScope("Planner.Admin");
-    });
-
-    if (!builder.Environment.IsDevelopment())
-    {
-        options.FallbackPolicy = new AuthorizationPolicyBuilder()
-            .RequireAuthenticatedUser()
-            .RequireScope("Planner.Access")
-            .Build();
+        options.FallbackPolicy =
+            new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .RequireScope("Planner.Access")
+                .Build();
     }
 });
-
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>() ?? [];
@@ -234,8 +229,15 @@ builder.Services.AddScoped<IEntityChangeLogService, EntityChangeLogService>();
 builder.Services.AddScoped<IErrorLogService, ErrorLogService>();
 builder.Services.AddScoped<ICorrelationTraceService, CorrelationTraceService>();
 builder.Services.AddScoped<IResourcePlanSnapshotService, ResourcePlanSnapshotService>();
-builder.Services.AddHostedService<ScheduledSyncHostedService>();
-builder.Services.AddHostedService<SharePointWorkspacePollerService>();
+if (builder.Configuration.GetValue<bool>("SyncScheduler:Enabled"))
+{
+    builder.Services.AddHostedService<ScheduledSyncHostedService>();
+}
+
+if (builder.Configuration.GetValue<bool>("ProjectWorkspacePoller:Enabled"))
+{
+    builder.Services.AddHostedService<SharePointWorkspacePollerService>();
+}
 builder.Services.AddHttpClient<IVirkService, VirkService>(client =>
 {
     var virkSettings = builder.Configuration.GetSection("Virk").Get<VirkSettings>();
@@ -279,8 +281,12 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/ping", () => Results.Ok("pong"));
-app.MapHealthChecks("/health");
+app.MapGet("/ping", () => Results.Ok("pong"))
+    .AllowAnonymous();
+
+app.MapHealthChecks("/health")
+    .AllowAnonymous();
+
 
 app.MapControllers();
 

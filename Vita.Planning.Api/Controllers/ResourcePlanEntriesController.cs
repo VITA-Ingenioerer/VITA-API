@@ -143,5 +143,10 @@ public sealed class ResourcePlanEntriesController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+            when (ex.InnerException?.Message.Contains("UX_core_resource_plan_entries_day") == true)
+        {
+            return Conflict(new { message = "An entry for this plan date already exists. Use the update endpoint to change hours." });
+        }
     }
 }

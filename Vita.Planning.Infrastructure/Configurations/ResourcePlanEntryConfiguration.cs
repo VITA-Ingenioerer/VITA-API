@@ -57,8 +57,21 @@ public sealed class ResourcePlanEntryConfiguration : IEntityTypeConfiguration<Re
 
         builder.HasIndex(x => x.PlanningTargetId);
         builder.HasIndex(x => x.PlanDate);
+
+        // Split in two: SQL Server's composite unique index disallows duplicate
+        // NULLs, so a single index naively extended with ProjectActivityId would
+        // still cap "no activity" entries at one per plan/target/day. See
+        // Sql/2026-07-split-entry-uniqueness-by-activity.sql for the matching
+        // hand-run migration (this repo has no EF migrations project).
+        builder.HasIndex(x => new { x.ResourcePlanId, x.PlanningTargetId, x.PlanDate, x.ProjectActivityId })
+            .IsUnique()
+            .HasDatabaseName("UX_core_resource_plan_entries_day_activity")
+            .HasFilter("[ext_project_activity_number] IS NOT NULL");
+
         builder.HasIndex(x => new { x.ResourcePlanId, x.PlanningTargetId, x.PlanDate })
-            .IsUnique();
+            .IsUnique()
+            .HasDatabaseName("UX_core_resource_plan_entries_day_no_activity")
+            .HasFilter("[ext_project_activity_number] IS NULL");
 
         builder.HasOne(x => x.PlanningTarget)
             .WithMany()
