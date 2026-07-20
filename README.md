@@ -150,80 +150,45 @@ or for auto-rebuild-on-save (VS Code's rough equivalent of Hot Reload):
 dotnet watch run --project Vita.Planning.Api
 ```
 
-**Publishing to Azure from the terminal.** Normal deploys go through GitHub Actions now — see
-[Deployment (CI/CD)](#deployment-cicd) below — this manual path is a break-glass fallback for
-when you need to push a build without waiting on CI. The `.pubxml` under `PublishProfiles/` is a
-Visual Studio/Web-Deploy artifact and generally needs Web Deploy tooling installed to drive from
-the CLI, so the more portable terminal path is `dotnet publish` + `az webapp deploy` (zip deploy) —
-this project's Azure CLI is already installed and `.vscode/settings.json` already points the
-VS Code Azure App Service extension at the same target, if you'd rather deploy from its GUI
-instead. Swap `--name vita-planning-api-dev` for `--name vita-planning-api-prod` (same resource
-group) to target Prod instead of Dev:
-
-```bash
-az login
-az account set --subscription 69ba7cf5-6cee-416a-b8e4-b08e1078862e
-
-dotnet publish Vita.Planning.Api -c Release -o ./publish/vita-planning-api
-```
+**Publishing to Azure from the terminal.** There's no CI/CD pipeline — deploys are a deliberate,
+manual step run from your machine via [`deploy.ps1`](deploy.ps1), which wraps `dotnet publish` +
+`az webapp deploy` (zip deploy). Requires `az login` once per session (or `az account set
+--subscription 69ba7cf5-6cee-416a-b8e4-b08e1078862e` if you have more than one).
 
 ```powershell
-Compress-Archive -Path .\publish\vita-planning-api\* -DestinationPath .\publish\vita-planning-api.zip -Force
-
-az webapp deploy `
-  --resource-group rg-vita-bigben-dev `
-  --name vita-planning-api-dev `
-  --src-path .\publish\vita-planning-api.zip `
-  --type zip
+./deploy.ps1 -Environment dev   # or -Environment prod
 ```
 
-Same caveat as the Visual Studio publish flow: this deploys the app, not its secrets — confirm
-the App Service's Application Settings (see below) are already populated before or after your
-first CLI deploy, or the deployed app will start and immediately fail.
+The script refuses to run if your working tree has uncommitted changes, or if the current commit
+hasn't been pushed to GitHub — deploys should only ever ship a commit that's already on GitHub, so
+GitHub stays the source of truth for what's actually live in each environment. Push first, then
+deploy.
 
-## Deployment (CI/CD)
+The `.pubxml` under `PublishProfiles/` (Visual Studio's **Publish** button) still works
+mechanically too, and `.vscode/settings.json` points the VS Code Azure App Service extension at
+the same target, but `deploy.ps1` is the normal path since it includes the git-state check above.
 
-There are two environments, each its own Azure App Service in resource group
-`rg-vita-bigben-dev`, each driven by its own git branch:
+Same caveat either way: this deploys the app, not its secrets — confirm the App Service's
+Application Settings (see below) are already populated before or after your first deploy, or the
+deployed app will start and immediately fail.
 
-| Branch | Environment | App Service | Workflow |
-|---|---|---|---|
-| `develop` | Dev | `vita-planning-api-dev` | [`deploy-dev.yml`](.github/workflows/deploy-dev.yml) |
-| `main` | Prod | `vita-planning-api-prod` | [`deploy-prod.yml`](.github/workflows/deploy-prod.yml) |
+## Deployment
 
-**Everyday flow:** branch off `develop` for a change → open a PR back into `develop` → merging
-(or pushing directly) to `develop` auto-deploys Dev. Once it's verified there, open a PR from
-`develop` into `main` → merging deploys Prod the same way. Nothing is deployed unless one of these
-two branches actually moves — feature branches and PRs by themselves don't trigger anything.
+There are two environments, each its own Azure App Service in resource group `rg-vita-planning`:
 
-Both workflows do the same thing: `dotnet publish` the API, then push the build to the matching
-App Service using [`azure/webapps-deploy`](https://github.com/Azure/webapps-deploy) authenticated
-with that app's **publish profile** — a credentials file Azure already generates per App Service
-(no Azure AD app registration or stored password involved; it only grants deploy access to that
-one App Service).
+| Environment | App Service |
+|---|---|
+| Dev | `vita-planning-api-dev` |
+| Prod | `vita-planning-api-prod` |
 
-**One-time setup (per environment), if the secret isn't already in GitHub:**
+There's no branch-to-environment mapping — `deploy.ps1` deploys whatever commit is currently
+checked out (and already pushed) to whichever environment you name. The usual flow is: push to
+GitHub, deploy to `dev`, verify, then deploy the same commit to `prod`.
 
-1. Azure Portal → **App Services → `vita-planning-api-dev`** (or `-prod`) → **Overview** →
-   **Download publish profile**. This saves a `.PublishSettings` XML file — treat it like a
-   password (it grants deploy access to that app).
-2. GitHub → this repo → **Settings → Secrets and variables → Actions → New repository secret**.
-3. Name it `AZURE_WEBAPP_PUBLISH_PROFILE_DEV` (or `AZURE_WEBAPP_PUBLISH_PROFILE_PROD`), and paste
-   the entire contents of the downloaded file as the value.
-4. Repeat for the other environment. Both secrets must exist before either workflow can deploy.
+**Rollback:** `git checkout` the last-known-good commit and run `deploy.ps1` again — there's no
+separate "undo deploy" step, it always ships whatever's currently checked out.
 
-If a publish profile is ever regenerated/rotated in the Portal, the old one stops working — just
-repeat the steps above with the freshly downloaded file to update the GitHub secret.
-
-**Watching a deploy:** GitHub → **Actions** tab → the run matching your push. A green check means
-the App Service was updated; a red X means it failed before touching Azure (most likely: the
-secret is missing/stale) or during deploy (check the "Deploy to Azure Web App" step's log).
-
-**Rollback:** revert the bad commit and push (or merge) again — that re-triggers the same
-workflow with the reverted code. There's no separate "undo deploy" step; the workflow always
-deploys whatever is currently at the tip of the branch.
-
-**Reminder:** the workflows only ship code. The five secret keys below live independently in each
+**Reminder:** the script only ships code. The five secret keys below live independently in each
 App Service's own configuration and are *not* touched by a deploy — see the next section, and set
 them up for `vita-planning-api-prod` too if you haven't yet (it's a separate App Service from
 `vita-planning-api-dev`, so it needs its own copy).
