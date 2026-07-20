@@ -126,6 +126,83 @@ public sealed class ProjectsController : ControllerBase
         return Ok(activities);
     }
 
+    // Only valid for a project with no rows in ext.project_activities at all — e-conomic's own
+    // documented default is that such a project has no restricted activity list, so any real
+    // activity is valid on it. Provisions the local row needed to satisfy the FK on
+    // resource_plan_entries.ext_project_activity_number (which a restricted project already has
+    // via the synced rows from ProjectActivitySyncService).
+    [HttpPost("{projectNumber:int}/activities")]
+    public async Task<ActionResult<ActivityDto>> EnsureActivityForProject(
+        int projectNumber,
+        [FromBody] EnsureProjectActivityRequest request,
+        CancellationToken cancellationToken)
+    {
+        var hasRestrictedList = await _dbContext.ProjectActivities
+            .AsNoTracking()
+            .AnyAsync(pa => pa.ProjectNumber == projectNumber, cancellationToken);
+
+        if (hasRestrictedList)
+        {
+            return BadRequest(new { message = "This project has a restricted activity list; choose one of its existing activities instead." });
+        }
+
+        var existing = await _dbContext.ProjectActivities
+            .FirstOrDefaultAsync(pa => pa.ProjectNumber == projectNumber && pa.ActivityNumber == request.ActivityNumber, cancellationToken);
+
+        if (existing is not null)
+        {
+            var existingActivity = await _dbContext.Activities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.ActivityNumber == existing.ActivityNumber, cancellationToken);
+
+            return existingActivity is null ? NotFound() : Ok(MapToActivityDto(existing, existingActivity));
+        }
+
+        var activity = await _dbContext.Activities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.ActivityNumber == request.ActivityNumber, cancellationToken);
+
+        if (activity is null)
+        {
+            return NotFound(new { message = $"Activity '{request.ActivityNumber}' was not found." });
+        }
+
+        var number = await _dbContext.Database
+            .SqlQuery<int>($"SELECT NEXT VALUE FOR ext.synthetic_project_activity_seq AS Value")
+            .FirstAsync(cancellationToken);
+
+        var entity = new ExtProjectActivity
+        {
+            Number = number,
+            ProjectNumber = projectNumber,
+            ActivityNumber = request.ActivityNumber,
+            Completed = false,
+            SourceLastSyncedAt = null
+        };
+
+        _dbContext.ProjectActivities.Add(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Ok(MapToActivityDto(entity, activity));
+    }
+
+    private static ActivityDto MapToActivityDto(ExtProjectActivity projectActivity, ExtActivity activity) => new()
+    {
+        ProjectActivityId = projectActivity.Number,
+        ActivityNumber = activity.ActivityNumber,
+        ActivityGroupNumber = activity.ActivityGroupNumber,
+        Name = activity.Name,
+        CostPriceMarkupPercentage = activity.CostPriceMarkupPercentage,
+        CutoffDate = activity.CutoffDate,
+        HideInSearch = activity.HideInSearch,
+        InLieuCode = activity.InLieuCode,
+        IsAccessible = activity.IsAccessible,
+        SalesPriceAfter = activity.SalesPriceAfter,
+        SalesPriceBefore = activity.SalesPriceBefore,
+        ObjectVersion = activity.ObjectVersion,
+        SourceLastSyncedAt = activity.SourceLastSyncedAt
+    };
+
     [HttpGet("{projectNumber:int}/team")]
     public async Task<ActionResult<IReadOnlyList<ProjectTeamMemberDto>>> GetTeam(
         int projectNumber,
