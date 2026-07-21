@@ -29,25 +29,28 @@ public sealed class CorrelationTraceService : ICorrelationTraceService
 
     public async Task<CorrelationTraceDto> GetTraceAsync(Guid correlationId, CancellationToken cancellationToken = default)
     {
-        var businessEventsTask = _businessEventService.GetByCorrelationIdAsync(correlationId, cancellationToken);
-        var errorsTask = _errorLogService.QueryAsync(correlationId, page: 1, pageSize: MaxEntriesPerSource, cancellationToken: cancellationToken);
-        var syncRunsTask = _syncRunService.GetByCorrelationIdAsync(correlationId, cancellationToken);
-        var lifecycleLogTask = _projectLifecycleLogService.GetByCorrelationIdAsync(correlationId, cancellationToken);
-        var resourcePlanEntryHistoryTask = _resourcePlanEntryHistoryService.GetByCorrelationIdAsync(correlationId, cancellationToken);
+        // Every service below shares the same scoped DbContext, which is not thread-safe,
+        // so these must run sequentially rather than via Task.WhenAll (that previously threw
+        // "A second operation was started on this context instance before a previous operation completed").
+        var businessEvents = await _businessEventService.GetByCorrelationIdAsync(correlationId, cancellationToken);
+        var errors = await _errorLogService.QueryAsync(correlationId, page: 1, pageSize: MaxEntriesPerSource, cancellationToken: cancellationToken);
+        var syncRuns = await _syncRunService.GetByCorrelationIdAsync(correlationId, cancellationToken);
+        var lifecycleLog = await _projectLifecycleLogService.GetByCorrelationIdAsync(correlationId, cancellationToken);
+        var resourcePlanEntryHistory = await _resourcePlanEntryHistoryService.GetByCorrelationIdAsync(correlationId, cancellationToken);
 
-        await Task.WhenAll(businessEventsTask, errorsTask, syncRunsTask, lifecycleLogTask, resourcePlanEntryHistoryTask);
-
-        var syncRuns = syncRunsTask.Result;
-        var syncErrorsByRun = await Task.WhenAll(
-            syncRuns.Select(run => _syncRunService.GetErrorsByRunIdAsync(run.SyncRunId, cancellationToken)));
+        var syncErrorsByRun = new List<SyncErrorDto>();
+        foreach (var run in syncRuns)
+        {
+            syncErrorsByRun.AddRange(await _syncRunService.GetErrorsByRunIdAsync(run.SyncRunId, cancellationToken));
+        }
 
         var entries = new List<TraceEntryDto>();
-        entries.AddRange(businessEventsTask.Result.Select(MapBusinessEvent));
-        entries.AddRange(errorsTask.Result.Items.Select(MapError));
+        entries.AddRange(businessEvents.Select(MapBusinessEvent));
+        entries.AddRange(errors.Items.Select(MapError));
         entries.AddRange(syncRuns.Select(MapSyncRun));
-        entries.AddRange(syncErrorsByRun.SelectMany(x => x).Select(MapSyncError));
-        entries.AddRange(lifecycleLogTask.Result.Select(MapLifecycleLog));
-        entries.AddRange(resourcePlanEntryHistoryTask.Result.Select(MapResourcePlanEntryHistory));
+        entries.AddRange(syncErrorsByRun.Select(MapSyncError));
+        entries.AddRange(lifecycleLog.Select(MapLifecycleLog));
+        entries.AddRange(resourcePlanEntryHistory.Select(MapResourcePlanEntryHistory));
 
         return new CorrelationTraceDto
         {
