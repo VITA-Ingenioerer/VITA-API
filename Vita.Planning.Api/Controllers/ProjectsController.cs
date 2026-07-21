@@ -167,9 +167,33 @@ public sealed class ProjectsController : ControllerBase
             return NotFound(new { message = $"Activity '{request.ActivityNumber}' was not found." });
         }
 
-        var number = await _dbContext.Database
-            .SqlQuery<int>($"SELECT NEXT VALUE FOR ext.synthetic_project_activity_seq AS Value")
-            .FirstAsync(cancellationToken);
+        // Database.SqlQuery<T> is composable — EF wraps it in a derived table so
+        // operators like .FirstAsync() can be pushed into the SQL, but SQL Server
+        // rejects NEXT VALUE FOR inside a derived table. Going through the raw
+        // connection instead runs it as a standalone top-level statement, which is
+        // the one context NEXT VALUE FOR is always allowed in.
+        var connection = _dbContext.Database.GetDbConnection();
+        var connectionAlreadyOpen = connection.State == System.Data.ConnectionState.Open;
+        if (!connectionAlreadyOpen)
+        {
+            await _dbContext.Database.OpenConnectionAsync(cancellationToken);
+        }
+
+        int number;
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT NEXT VALUE FOR ext.synthetic_project_activity_seq";
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            number = Convert.ToInt32(result);
+        }
+        finally
+        {
+            if (!connectionAlreadyOpen)
+            {
+                await _dbContext.Database.CloseConnectionAsync();
+            }
+        }
 
         var entity = new ExtProjectActivity
         {
