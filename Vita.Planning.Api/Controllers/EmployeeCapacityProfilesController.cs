@@ -42,24 +42,31 @@ public sealed class EmployeeCapacityProfilesController : ControllerBase
         [FromBody] CreateEmployeeCapacityProfileRequest request,
         CancellationToken cancellationToken)
     {
-        var caller = CallerInfo.FromClaimsPrincipal(User);
-        request.CreatedBy = caller.UserId ?? caller.Email ?? caller.Name;
-
-        var result = await _service.CreateAsync(request, cancellationToken);
-
-        await _events.RecordAsync(new RecordBusinessEventRequest
+        try
         {
-            EventType = "CapacityProfileChanged",
-            EventTitle = $"Kapacitetsprofil oprettet: medarbejder {result.EmployeeId} fra {result.EffectiveFrom}",
-            EntityType = "EmployeeCapacityProfile",
-            EntityId = result.EmployeeCapacityProfileId.ToString(),
-            NewValue = $"{result.DefaultWeeklyHours}t/uge fra {result.EffectiveFrom}",
-            CreatedByUserId = caller.UserId,
-            CreatedByName = caller.Name,
-            SourceModule = "EmployeeCapacityProfilesController"
-        }, cancellationToken);
+            var caller = CallerInfo.FromClaimsPrincipal(User);
+            request.CreatedBy = caller.UserId ?? caller.Email ?? caller.Name;
 
-        return CreatedAtAction(nameof(GetById), new { id = result.EmployeeCapacityProfileId }, result);
+            var result = await _service.CreateAsync(request, cancellationToken);
+
+            await _events.RecordAsync(new RecordBusinessEventRequest
+            {
+                EventType = "CapacityProfileChanged",
+                EventTitle = $"Kapacitetsprofil oprettet: medarbejder {result.EmployeeId} fra {result.EffectiveFrom}",
+                EntityType = "EmployeeCapacityProfile",
+                EntityId = result.EmployeeCapacityProfileId.ToString(),
+                NewValue = $"{result.DefaultWeeklyHours}t/uge fra {result.EffectiveFrom}",
+                CreatedByUserId = caller.UserId,
+                CreatedByName = caller.Name,
+                SourceModule = "EmployeeCapacityProfilesController"
+            }, cancellationToken);
+
+            return CreatedAtAction(nameof(GetById), new { id = result.EmployeeCapacityProfileId }, result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id:int}")]
@@ -68,28 +75,61 @@ public sealed class EmployeeCapacityProfilesController : ControllerBase
         [FromBody] UpdateEmployeeCapacityProfileRequest request,
         CancellationToken cancellationToken)
     {
-        var caller = CallerInfo.FromClaimsPrincipal(User);
-        request.UpdatedBy = caller.UserId ?? caller.Email ?? caller.Name;
+        try
+        {
+            var caller = CallerInfo.FromClaimsPrincipal(User);
+            request.UpdatedBy = caller.UserId ?? caller.Email ?? caller.Name;
 
-        var result = await _service.UpdateAsync(id, request, cancellationToken);
+            var result = await _service.UpdateAsync(id, request, cancellationToken);
+
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            await _events.RecordAsync(new RecordBusinessEventRequest
+            {
+                EventType = "CapacityProfileChanged",
+                EventTitle = $"Kapacitetsprofil opdateret: medarbejder {result.EmployeeId} fra {result.EffectiveFrom}",
+                EntityType = "EmployeeCapacityProfile",
+                EntityId = result.EmployeeCapacityProfileId.ToString(),
+                NewValue = $"{result.DefaultWeeklyHours}t/uge fra {result.EffectiveFrom}",
+                CreatedByUserId = caller.UserId,
+                CreatedByName = caller.Name,
+                SourceModule = "EmployeeCapacityProfilesController"
+            }, cancellationToken);
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var result = await _service.DeleteAsync(id, cancellationToken);
 
         if (result is null)
         {
             return NotFound();
         }
 
+        var caller = CallerInfo.FromClaimsPrincipal(User);
         await _events.RecordAsync(new RecordBusinessEventRequest
         {
             EventType = "CapacityProfileChanged",
-            EventTitle = $"Kapacitetsprofil opdateret: medarbejder {result.EmployeeId} fra {result.EffectiveFrom}",
+            EventTitle = $"Kapacitetsprofil slettet: medarbejder {result.EmployeeId} fra {result.EffectiveFrom}",
             EntityType = "EmployeeCapacityProfile",
             EntityId = result.EmployeeCapacityProfileId.ToString(),
-            NewValue = $"{result.DefaultWeeklyHours}t/uge fra {result.EffectiveFrom}",
+            NewValue = "Slettet",
             CreatedByUserId = caller.UserId,
             CreatedByName = caller.Name,
             SourceModule = "EmployeeCapacityProfilesController"
         }, cancellationToken);
 
-        return Ok(result);
+        return NoContent();
     }
 }

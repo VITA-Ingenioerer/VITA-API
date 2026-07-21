@@ -35,8 +35,51 @@ public sealed class EmployeeCapacityProfileService : IEmployeeCapacityProfileSer
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    // The planner (plannerViewBuilder.resolveWeeklyHoursForPeriod on the frontend) picks whichever
+    // active profile's EffectiveFrom/EffectiveTo covers a given date. Two active, overlapping
+    // periods for the same employee make that pick ambiguous, so it's rejected here rather than
+    // silently persisted. Inactive periods don't participate in that resolution, so they're
+    // excluded from the check on both sides (existing rows, and the new/updated one itself).
+    private async Task RequireNoOverlappingActivePeriodAsync(
+        int employeeId,
+        DateOnly effectiveFrom,
+        DateOnly? effectiveTo,
+        bool isActive,
+        int? excludeId,
+        CancellationToken cancellationToken)
+    {
+        if (!isActive)
+        {
+            return;
+        }
+
+        var candidateEnd = effectiveTo ?? DateOnly.MaxValue;
+
+        var existingActivePeriods = await _dbContext.EmployeeCapacityProfiles
+            .AsNoTracking()
+            .Where(x => x.EmployeeId == employeeId && x.IsActive)
+            .Where(x => excludeId == null || x.EmployeeCapacityProfileId != excludeId.Value)
+            .Select(x => new { x.EffectiveFrom, x.EffectiveTo })
+            .ToListAsync(cancellationToken);
+
+        var hasOverlap = existingActivePeriods.Any(x =>
+        {
+            var existingEnd = x.EffectiveTo ?? DateOnly.MaxValue;
+            return effectiveFrom <= existingEnd && x.EffectiveFrom <= candidateEnd;
+        });
+
+        if (hasOverlap)
+        {
+            throw new InvalidOperationException(
+                $"Perioden fra {effectiveFrom:yyyy-MM-dd} overlapper med en anden aktiv kapacitetsperiode for medarbejder {employeeId}.");
+        }
+    }
+
     public async Task<EmployeeCapacityProfileDto> CreateAsync(CreateEmployeeCapacityProfileRequest request, CancellationToken cancellationToken = default)
     {
+        await RequireNoOverlappingActivePeriodAsync(
+            request.EmployeeId, request.EffectiveFrom, request.EffectiveTo, request.IsActive, excludeId: null, cancellationToken);
+
         var entity = new EmployeeCapacityProfile
         {
             EmployeeId = request.EmployeeId,
@@ -71,6 +114,9 @@ public sealed class EmployeeCapacityProfileService : IEmployeeCapacityProfileSer
             return null;
         }
 
+        await RequireNoOverlappingActivePeriodAsync(
+            request.EmployeeId, request.EffectiveFrom, request.EffectiveTo, request.IsActive, excludeId: id, cancellationToken);
+
         entity.EmployeeId = request.EmployeeId;
         entity.EffectiveFrom = request.EffectiveFrom;
         entity.EffectiveTo = request.EffectiveTo;
@@ -89,6 +135,24 @@ public sealed class EmployeeCapacityProfileService : IEmployeeCapacityProfileSer
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return MapToDto(entity);
+    }
+
+    public async Task<EmployeeCapacityProfileDto?> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.EmployeeCapacityProfiles
+            .FirstOrDefaultAsync(x => x.EmployeeCapacityProfileId == id, cancellationToken);
+
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var dto = MapToDto(entity);
+
+        _dbContext.EmployeeCapacityProfiles.Remove(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return dto;
     }
 
     private static string? NormalizeNullable(string? value) =>
