@@ -176,6 +176,24 @@ public sealed class VitaHolidayService : IVitaHolidayService
         return MapOverrideToDto(entity);
     }
 
+    public async Task<VitaHolidayOverrideDto?> DeleteOverrideAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.Set<VitaHolidayOverride>()
+            .FirstOrDefaultAsync(x => x.VitaHolidayOverrideId == id, cancellationToken);
+
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var dto = MapOverrideToDto(entity);
+
+        _dbContext.Set<VitaHolidayOverride>().Remove(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return dto;
+    }
+
     private static void ValidateRequest(string countryCode, DateOnly holidayDate, string holidayType, decimal? hoursReduction)
     {
         if (string.IsNullOrWhiteSpace(countryCode))

@@ -106,4 +106,30 @@ public sealed class VitaHolidayOverridesController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var result = await _service.DeleteOverrideAsync(id, cancellationToken);
+
+        if (result is null)
+        {
+            return NotFound();
+        }
+
+        var caller = CallerInfo.FromClaimsPrincipal(User);
+        await _events.RecordAsync(new RecordBusinessEventRequest
+        {
+            EventType = "HolidayChanged",
+            EventTitle = $"Helligdag slettet: {result.HolidayDate}",
+            EntityType = "VitaHolidayOverride",
+            EntityId = result.VitaHolidayOverrideId.ToString(),
+            NewValue = $"{result.HolidayName} ({result.HolidayDate})",
+            CreatedByUserId = caller.UserId,
+            CreatedByName = caller.Name,
+            SourceModule = "VitaHolidayOverridesController"
+        }, cancellationToken);
+
+        return NoContent();
+    }
 }

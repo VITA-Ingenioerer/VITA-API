@@ -9,4 +9,5 @@ public interface IVitaHolidayService
     Task<VitaHolidayOverrideDto?> GetOverrideByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<VitaHolidayOverrideDto> CreateOverrideAsync(CreateVitaHolidayOverrideRequest request, CancellationToken cancellationToken = default);
     Task<VitaHolidayOverrideDto?> UpdateOverrideAsync(int id, UpdateVitaHolidayOverrideRequest request, CancellationToken cancellationToken = default);
+    Task<VitaHolidayOverrideDto?> DeleteOverrideAsync(int id, CancellationToken cancellationToken = default);
 }
