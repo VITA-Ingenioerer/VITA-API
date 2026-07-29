@@ -264,6 +264,11 @@ builder.Services.AddHttpClient<IOutlookCalendarClient, OutlookCalendarClient>(cl
 });
 builder.Services.AddScoped<IOutOfOfficeCalendarService, OutOfOfficeCalendarService>();
 
+builder.Services.AddHttpClient<IPdfCaptureMailClient, PdfCaptureMailClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

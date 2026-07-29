@@ -90,6 +90,23 @@ public sealed class PlanningMetadataImportController : ControllerBase
     {
         var result = new PlanningMetadataImportResult();
 
+        // Loaded once per import run rather than per row: 1,800+ rows would otherwise mean
+        // 1,800+ round trips just to check whether a partner/customer name already exists.
+        var customersByName = (await _dbContext.Customers.AsNoTracking().ToListAsync(cancellationToken))
+            .GroupBy(x => x.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().CustomerId, StringComparer.OrdinalIgnoreCase);
+
+        var partnerRoleTypeIdsByCode = await _dbContext.PlanningPartnerRoleTypes
+            .Where(x => x.IsActive)
+            .ToDictionaryAsync(x => x.Code, x => x.PlanningPartnerRoleTypeId, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+        // A DB lookup by OfferNumber only sees rows already saved — it won't see an Offer another
+        // row in this same run just created but hasn't flushed yet. Without this, two rows sharing
+        // an offer number (the source sheet has some) each insert a "new" Offer with the same
+        // number and the final SaveChanges fails on the unique constraint. This tracks offers
+        // touched during the run so a repeated number reuses the same entity instead.
+        var offersByNumber = new Dictionary<string, Offer>(StringComparer.OrdinalIgnoreCase);
+
         for (var index = 0; index < items.Count; index++)
         {
             var item = items[index];
@@ -137,7 +154,8 @@ public sealed class PlanningMetadataImportController : ControllerBase
                         continue;
                     }
 
-                    var importState = await UpsertOfferAsync(item, projectCode, probability, cancellationToken);
+                    var importState = await UpsertOfferAsync(
+                        item, projectCode, probability, customersByName, partnerRoleTypeIdsByCode, offersByNumber, cancellationToken);
                     if (importState == EntityImportState.Created)
                     {
                         result.OffersCreated++;
@@ -277,20 +295,30 @@ public sealed class PlanningMetadataImportController : ControllerBase
                 .Where(r => r.RowNumber() > firstRow.RowNumber())
                 .Select(row => new PlanningMetadataImportItem
                 {
-                    Projektnr    = GetXlString(row, headers, "Projektnr.") ?? GetXlString(row, headers, "Projektnr"),
+                    Projektnr    = GetXlString(row, headers, "Projektnr.") ?? GetXlString(row, headers, "Projektnr") ?? GetXlString(row, headers, "Tilbudsnr."),
                     Projektnavn  = GetXlString(row, headers, "Projektnavn"),
                     Sandsynlighed = ParseXlJsonElement(GetXlString(row, headers, "Sandsynlighed")),
                     Kundenr      = ParseXlJsonElement(GetXlString(row, headers, "Kundenr.")),
-                    Kundenavn    = GetXlString(row, headers, "Kundenavn"),
-                    Pl           = GetXlString(row, headers, "PL"),
+                    Kundenavn    = GetXlString(row, headers, "Kundenavn") ?? GetXlString(row, headers, "Kunde"),
+                    Pl           = GetXlString(row, headers, "PL") ?? GetXlString(row, headers, "Ansvarlig person"),
                     Projektejer  = GetXlString(row, headers, "Projektejer"),
                     Honorar      = ParseXlJsonElement(GetXlString(row, headers, "Honorar")),
                     Kode         = GetXlString(row, headers, "Kode (Fa/In/Fr/Sa)") ?? GetXlString(row, headers, "Kode"),
                     IndtastningerPaaProjektet = ParseXlJsonElement(GetXlString(row, headers, "Er der indtastninger på projektet?")),
                     Projektkompleksitet = GetXlString(row, headers, "Projektkompleksitet"),
-                    SenestAendret = GetXlString(row, headers, "Senest ændret"),
+                    SenestAendret = GetXlString(row, headers, "Senest ændret") ?? GetXlString(row, headers, "Sidst redigeret"),
                     Konstruktionsklasse = GetXlString(row, headers, "Konstruktionsklasse"),
-                    Brandklasse  = GetXlString(row, headers, "Brandklasse")
+                    Brandklasse  = GetXlString(row, headers, "Brandklasse"),
+                    AnsvarligtKontor = GetXlString(row, headers, "Ansvarligt kontor"),
+                    Bygherre     = GetXlString(row, headers, "Bygherre"),
+                    Totalentreprenoer = GetXlString(row, headers, "Totalentreprenør"),
+                    Arkitekt     = GetXlString(row, headers, "Arkitekt"),
+                    OevrigtTeam  = GetXlString(row, headers, "Øvrigt team"),
+                    ForventetStart = GetXlDateOrText(row, headers, "Forventet start"),
+                    ForventetSlut = GetXlDateOrText(row, headers, "Forventet slut"),
+                    Storrelse    = GetXlString(row, headers, "Størrelse"),
+                    Relation     = GetXlString(row, headers, "Relation"),
+                    DatoForAfleveringAfPq = GetXlDateOrText(row, headers, "Dato for aflevering af PQ")
                 })
                 .ToList();
         }
@@ -321,6 +349,28 @@ public sealed class PlanningMetadataImportController : ControllerBase
         }
 
         var value = row.Cell(col).GetFormattedString().Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    // Some source columns (Forventet start/slut, Dato for aflevering af PQ) are a mix of real
+    // Excel dates and free-text ("Q4 2022", "3 juni PQ"). Emitting a real date cell as ISO here
+    // gives the downstream parser one unambiguous format to try first, instead of depending on
+    // the cell's display format matching what the parser expects.
+    private static string? GetXlDateOrText(IXLRow row, IReadOnlyDictionary<string, int> headers, string header)
+    {
+        if (!headers.TryGetValue(header, out var col))
+        {
+            return null;
+        }
+
+        var cell = row.Cell(col);
+
+        if (cell.DataType == XLDataType.DateTime)
+        {
+            return cell.GetDateTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        var value = cell.GetFormattedString().Trim();
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
@@ -360,11 +410,18 @@ public sealed class PlanningMetadataImportController : ControllerBase
         PlanningMetadataImportItem item,
         string projectCode,
         decimal probabilityPercent,
+        Dictionary<string, int> customersByName,
+        IReadOnlyDictionary<string, int> partnerRoleTypeIdsByCode,
+        Dictionary<string, Offer> offersByNumber,
         CancellationToken cancellationToken)
     {
         var offerNumber = projectCode.Trim().ToUpperInvariant();
-        var entity = await _dbContext.Offers
-            .FirstOrDefaultAsync(x => x.OfferNumber == offerNumber, cancellationToken);
+
+        if (!offersByNumber.TryGetValue(offerNumber, out var entity))
+        {
+            entity = await _dbContext.Offers
+                .FirstOrDefaultAsync(x => x.OfferNumber == offerNumber, cancellationToken);
+        }
 
         var state = entity is null ? EntityImportState.Created : EntityImportState.Updated;
         var now = DateTime.UtcNow;
@@ -388,6 +445,8 @@ public sealed class PlanningMetadataImportController : ControllerBase
             entity.UpdatedAtUtc = now;
         }
 
+        offersByNumber[offerNumber] = entity;
+
         entity.Title = TrimToMaxLength(Normalize(item.Projektnavn) ?? offerNumber, 255) ?? offerNumber;
         entity.ResponsibleInitials = TrimToMaxLength(NormalizeUpper(item.Pl), 20);
 
@@ -401,7 +460,190 @@ public sealed class PlanningMetadataImportController : ControllerBase
             entity.OfferStatusId = await ResolveLegacyOfferStatusIdAsync("Open", cancellationToken);
         }
 
+        // These source columns are sparse and noisy (free-text dates, "Ukendt"/"-"/"?" area
+        // values, etc.), so only overwrite when a value actually parses — leaving them alone
+        // otherwise avoids a blank/unparseable cell silently wiping out a value that was already
+        // set from a previous import or entered manually in the UI.
+        var officeCode = TrimToMaxLength(NormalizeUpper(item.AnsvarligtKontor), 20);
+        if (officeCode is not null)
+        {
+            entity.ResponsibleOfficeCode = officeCode;
+        }
+
+        var arealM2 = ParseAreaM2(item.Storrelse);
+        if (arealM2.HasValue)
+        {
+            entity.ArealM2 = arealM2;
+        }
+
+        var hasRelation = ParseBoolJaNej(item.Relation);
+        if (hasRelation.HasValue)
+        {
+            entity.HasRelation = hasRelation.Value;
+        }
+
+        var (startYear, startQuarter) = ParseYearQuarter(item.ForventetStart);
+        if (startYear.HasValue)
+        {
+            entity.ExpectedStartYear = startYear;
+            entity.ExpectedStartQuarter = startQuarter;
+        }
+
+        var (endYear, endQuarter) = ParseYearQuarter(item.ForventetSlut);
+        if (endYear.HasValue)
+        {
+            entity.ExpectedEndYear = endYear;
+            entity.ExpectedEndQuarter = endQuarter;
+        }
+
+        var pqSubmissionDate = ParsePqSubmissionDate(item.DatoForAfleveringAfPq);
+        if (pqSubmissionDate.HasValue)
+        {
+            entity.PqSubmissionDate = pqSubmissionDate;
+        }
+
+        var customerName = Normalize(item.Kundenavn);
+        if (customerName is not null)
+        {
+            entity.CustomerId = await ResolveCustomerIdAsync(customerName, customersByName, cancellationToken);
+        }
+
+        var hasPartnerData = !string.IsNullOrWhiteSpace(item.Bygherre)
+            || !string.IsNullOrWhiteSpace(item.Totalentreprenoer)
+            || !string.IsNullOrWhiteSpace(item.Arkitekt)
+            || !string.IsNullOrWhiteSpace(item.OevrigtTeam);
+
+        if (hasPartnerData)
+        {
+            // CustomerPartnerRole hangs off the offer's PlanningTarget, not the offer itself, and
+            // a brand-new offer doesn't have a real OfferId until it's actually been saved.
+            if (entity.OfferId == 0)
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            var planningTarget = await ResolveOfferPlanningTargetAsync(entity, cancellationToken);
+
+            foreach (var (companyName, roleCode) in new (string? CompanyName, string RoleCode)[]
+            {
+                (item.Bygherre, "Bygherre"),
+                (item.Totalentreprenoer, "Totalentreprenoer"),
+                (item.Arkitekt, "Arkitekt"),
+                (item.OevrigtTeam, "OevrigSamarbejdspartner")
+            })
+            {
+                var normalizedCompanyName = Normalize(companyName);
+                if (normalizedCompanyName is null
+                    || !partnerRoleTypeIdsByCode.TryGetValue(roleCode, out var roleTypeId))
+                {
+                    continue;
+                }
+
+                await UpsertPartnerRoleAsync(
+                    planningTarget.PlanningTargetId, roleTypeId, normalizedCompanyName, customersByName, cancellationToken);
+            }
+        }
+
         return state;
+    }
+
+    // Offers only get a PlanningTarget row when something needs to attach planning-level data to
+    // them (partner roles, in this case) — most offers never need one. Reuses the same
+    // TargetType = "Offer" convention LegacyImportController already establishes elsewhere.
+    private async Task<PlanningTarget> ResolveOfferPlanningTargetAsync(Offer offer, CancellationToken cancellationToken)
+    {
+        var target = await _dbContext.PlanningTargets
+            .FirstOrDefaultAsync(t => t.TargetType == "Offer" && t.OfferId == offer.OfferId, cancellationToken);
+
+        if (target is not null)
+        {
+            return target;
+        }
+
+        target = new PlanningTarget
+        {
+            Code = offer.OfferNumber,
+            Name = offer.Title,
+            TargetType = "Offer",
+            OfferId = offer.OfferId,
+            IsActive = true,
+            IsPlannable = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        _dbContext.PlanningTargets.Add(target);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return target;
+    }
+
+    // Find-or-create by exact (case-insensitive) name — same defaults CustomerService.CreateAsync
+    // uses for manually-created customers, so an import-created row looks like any other manual one.
+    private async Task<int> ResolveCustomerIdAsync(
+        string customerName,
+        Dictionary<string, int> customersByName,
+        CancellationToken cancellationToken)
+    {
+        if (customersByName.TryGetValue(customerName, out var existingId))
+        {
+            return existingId;
+        }
+
+        var customer = new Customer
+        {
+            Name = customerName,
+            CustomerSource = "Local",
+            CustomerStatus = "Active",
+            CountryCode = "DK",
+            CreatedBy = ImportActor,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        _dbContext.Customers.Add(customer);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        customersByName[customerName] = customer.CustomerId;
+        return customer.CustomerId;
+    }
+
+    // Upserts a single role slot (planning target + role type) rather than replacing every
+    // partner role on the target, so importing Bygherre/Totalentreprenør/Arkitekt/Øvrigt team
+    // never touches role types this sheet doesn't cover (e.g. Ingeniør, Brandrådgiver) that
+    // someone may have added manually through the UI.
+    private async Task UpsertPartnerRoleAsync(
+        int planningTargetId,
+        int roleTypeId,
+        string companyName,
+        Dictionary<string, int> customersByName,
+        CancellationToken cancellationToken)
+    {
+        var customerId = await ResolveCustomerIdAsync(companyName, customersByName, cancellationToken);
+
+        var existing = await _dbContext.CustomerPartnerRoles.FirstOrDefaultAsync(
+            r => r.PlanningTargetId == planningTargetId && r.PlanningPartnerRoleTypeId == roleTypeId,
+            cancellationToken);
+
+        if (existing is not null)
+        {
+            if (existing.CustomerId != customerId)
+            {
+                existing.CustomerId = customerId;
+                existing.UpdatedBy = ImportActor;
+                existing.UpdatedAtUtc = DateTime.UtcNow;
+            }
+
+            return;
+        }
+
+        _dbContext.CustomerPartnerRoles.Add(new CustomerPartnerRole
+        {
+            PlanningTargetId = planningTargetId,
+            CustomerId = customerId,
+            PlanningPartnerRoleTypeId = roleTypeId,
+            IsPrimary = false,
+            CreatedBy = ImportActor,
+            CreatedAtUtc = DateTime.UtcNow
+        });
     }
     private async Task<int?> ResolveLegacyOfferStatusIdAsync(
     string? legacyStatus,
@@ -685,6 +927,134 @@ public sealed class PlanningMetadataImportController : ControllerBase
         };
     }
 
+    private static readonly Regex QuarterYearPattern =
+        new(@"Q\s*(?<q>[1-4])\s*,?\s*(?<y>\d{4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex YearOnlyPattern = new(@"^\d{4}$", RegexOptions.Compiled);
+    private static readonly Regex IsoDatePattern = new(@"^(?<y>\d{4})-(?<m>\d{2})-(?<d>\d{2})$", RegexOptions.Compiled);
+
+    private static readonly HashSet<string> UnknownAreaTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ukendt", "n/a", "-", "?", "fortrolig"
+    };
+
+    // Handles the three shapes actually present in the source data: a real Excel date (emitted as
+    // ISO by GetXlDateOrText), "Q4 2022"/"Q3, 2024", and a bare 4-digit year with no quarter.
+    // Anything else (blank, garbage) yields no quarter/year rather than a guess.
+    private static (int? Year, int? Quarter) ParseYearQuarter(string? raw)
+    {
+        var value = Normalize(raw);
+        if (value is null)
+        {
+            return (null, null);
+        }
+
+        var isoMatch = IsoDatePattern.Match(value);
+        if (isoMatch.Success)
+        {
+            var year = int.Parse(isoMatch.Groups["y"].Value, CultureInfo.InvariantCulture);
+            var month = int.Parse(isoMatch.Groups["m"].Value, CultureInfo.InvariantCulture);
+            return (year, ((month - 1) / 3) + 1);
+        }
+
+        var quarterMatch = QuarterYearPattern.Match(value);
+        if (quarterMatch.Success)
+        {
+            return (
+                int.Parse(quarterMatch.Groups["y"].Value, CultureInfo.InvariantCulture),
+                int.Parse(quarterMatch.Groups["q"].Value, CultureInfo.InvariantCulture));
+        }
+
+        return YearOnlyPattern.IsMatch(value)
+            ? (int.Parse(value, CultureInfo.InvariantCulture), null)
+            : (null, null);
+    }
+
+    // Strips m2/m² suffixes and Danish thousands separators ("14.000 m²" -> 14000). Explicitly
+    // rejects known non-answers ("Ukendt", "N/A", "-", "?", "Fortrolig") and anything mentioning
+    // "mio" (a fee value mistakenly entered in this column, not an area) rather than
+    // misinterpreting them as numbers.
+    private static decimal? ParseAreaM2(string? raw)
+    {
+        var value = Normalize(raw);
+        if (value is null
+            || UnknownAreaTokens.Contains(value)
+            || value.Contains("mio", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var stripped = value
+            .Replace("m²", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace("m2", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace(".", string.Empty, StringComparison.Ordinal)
+            .Replace(",", ".", StringComparison.Ordinal)
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .Trim();
+
+        if (!decimal.TryParse(stripped, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return null;
+        }
+
+        // areal_m2 is decimal(10,2) (max ~99,999,999.99), and some cells in this column actually
+        // hold a monetary figure ("360.000.000") with no "mio"/"m2" text to flag it as non-area.
+        // No real building/plot is anywhere near a million square metres, so treat anything past
+        // that as misplaced data rather than let it overflow the column.
+        return parsed is > 0 and <= 1_000_000 ? parsed : null;
+    }
+
+    private static bool? ParseBoolJaNej(string? raw)
+    {
+        var value = Normalize(raw);
+
+        if (string.Equals(value, "Ja", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(value, "Nej", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return null;
+    }
+
+    // The source column mixes ISO dates (from real Excel date cells), dd.MM.yyyy text, and raw
+    // Excel serial numbers pasted as plain integers. Ambiguous entries with no year ("3 juni PQ")
+    // are deliberately left unparsed rather than guessed.
+    private static DateOnly? ParsePqSubmissionDate(string? raw)
+    {
+        var value = Normalize(raw);
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var iso))
+        {
+            return iso;
+        }
+
+        if (DateOnly.TryParseExact(
+                value,
+                ["dd.MM.yyyy", "dd-MM-yyyy", "d.M.yyyy"],
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var danish))
+        {
+            return danish;
+        }
+
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var serial)
+            && serial is > 40000 and < 55000)
+        {
+            return DateOnly.FromDateTime(DateTime.FromOADate(serial));
+        }
+
+        return null;
+    }
+
     private static bool TryParseFlexibleDecimal(string? value, out decimal result)
     {
         result = default;
@@ -775,6 +1145,36 @@ public sealed class PlanningMetadataImportItem
 
     [JsonPropertyName("brandklasse")]
     public string? Brandklasse { get; set; }
+
+    [JsonPropertyName("ansvarligt_kontor")]
+    public string? AnsvarligtKontor { get; set; }
+
+    [JsonPropertyName("bygherre")]
+    public string? Bygherre { get; set; }
+
+    [JsonPropertyName("totalentreprenoer")]
+    public string? Totalentreprenoer { get; set; }
+
+    [JsonPropertyName("arkitekt")]
+    public string? Arkitekt { get; set; }
+
+    [JsonPropertyName("oevrigt_team")]
+    public string? OevrigtTeam { get; set; }
+
+    [JsonPropertyName("forventet_start")]
+    public string? ForventetStart { get; set; }
+
+    [JsonPropertyName("forventet_slut")]
+    public string? ForventetSlut { get; set; }
+
+    [JsonPropertyName("stoerrelse")]
+    public string? Storrelse { get; set; }
+
+    [JsonPropertyName("relation")]
+    public string? Relation { get; set; }
+
+    [JsonPropertyName("dato_for_aflevering_af_pq")]
+    public string? DatoForAfleveringAfPq { get; set; }
 }
 
 public sealed class PlanningMetadataImportResult

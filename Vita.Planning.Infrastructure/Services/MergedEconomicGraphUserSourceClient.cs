@@ -50,14 +50,37 @@ public sealed class MergedEconomicGraphUserSourceClient : IInternalUserSourceCli
                 x => x.OrderByDescending(y => y.AccountEnabled == true).First(),
                 StringComparer.OrdinalIgnoreCase);
 
+        var candidates = economicEmployees
+            .Select(e => (Employee: e, GraphUser: FindGraphUser(e, graphByEmployeeId, graphByDisplayName)))
+            .ToList();
+
+        // Two e-conomic employee records (e.g. a closed record plus a new one issued on rehire)
+        // can both resolve to the same single Graph identity when Graph's employeeId attribute
+        // wasn't updated and they share a display name. Only the currently-active record should
+        // claim that identity's real UPN/attributes — otherwise every sync run alternates which
+        // record "wins" the row (whichever is processed last), which can leave an active rehire
+        // invisible while a terminated duplicate keeps the real mailbox address.
+        var graphClaimWinners = candidates
+            .Where(c => c.GraphUser is not null)
+            .GroupBy(c => c.GraphUser!.Id)
+            .Where(g => g.Count() > 1)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .OrderByDescending(c => c.Employee.IsActive)
+                    .ThenByDescending(c => c.Employee.EmployeeId)
+                    .First()
+                    .Employee.EmployeeId);
+
         var sourceUsers = new List<SourceUserDto>();
 
-        foreach (var economicEmployee in economicEmployees)
+        foreach (var (economicEmployee, candidateGraphUser) in candidates)
         {
-            var graphUser = FindGraphUser(
-                economicEmployee,
-                graphByEmployeeId,
-                graphByDisplayName);
+            var graphUser = candidateGraphUser is not null
+                && graphClaimWinners.TryGetValue(candidateGraphUser.Id, out var winnerEmployeeId)
+                && winnerEmployeeId != economicEmployee.EmployeeId
+                    ? null
+                    : candidateGraphUser;
 
             var userPrincipalName =
                 FirstNonEmpty(
