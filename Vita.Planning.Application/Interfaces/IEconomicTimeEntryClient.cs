@@ -21,6 +21,15 @@ public interface IEconomicTimeEntryClient
         int? employeeNumber = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lists time entries across all employees/projects. Pass null to fetch every entry
+    /// (full backfill); pass a timestamp to fetch only entries changed since then
+    /// (incremental sync, via the lastUpdated filter).
+    /// </summary>
+    Task<IReadOnlyList<EconomicTimeEntryDto>> GetTimeEntriesUpdatedSinceAsync(
+        DateTime? updatedSinceUtc,
+        CancellationToken cancellationToken = default);
+
     Task<EconomicTimeEntryDto?> GetTimeEntryAsync(int number, CancellationToken cancellationToken = default);
 
     Task<int> CreateTimeEntryAsync(CreateTimeEntryRequest request, CancellationToken cancellationToken = default);

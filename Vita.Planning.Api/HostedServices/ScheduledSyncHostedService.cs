@@ -121,6 +121,9 @@ public sealed class ScheduledSyncHostedService : BackgroundService
             var projectSyncService =
                 scope.ServiceProvider.GetRequiredService<IProjectSyncService>();
 
+            var timeEntrySyncService =
+                scope.ServiceProvider.GetRequiredService<ITimeEntrySyncService>();
+
             await RunStepAsync(
                 "project-statuses",
                 () => projectStatusSyncService.SyncProjectStatusesAsync(initiatedBy, cancellationToken));
@@ -154,6 +157,10 @@ public sealed class ScheduledSyncHostedService : BackgroundService
             await RunStepAsync(
                 "projects",
                 () => projectSyncService.SyncProjectsAsync(initiatedBy, cancellationToken));
+
+            await RunStepAsync(
+                "time-entries",
+                () => timeEntrySyncService.SyncNewTimeEntriesAsync(initiatedBy, cancellationToken));
 
             _logger.LogInformation("Scheduled sync run completed.");
         }

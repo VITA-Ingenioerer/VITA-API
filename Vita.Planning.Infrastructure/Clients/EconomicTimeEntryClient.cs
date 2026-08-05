@@ -62,6 +62,23 @@ public sealed class EconomicTimeEntryClient : IEconomicTimeEntryClient
         return FetchByFilterAsync(filter, cancellationToken);
     }
 
+    public Task<IReadOnlyList<EconomicTimeEntryDto>> GetTimeEntriesUpdatedSinceAsync(
+        DateTime? updatedSinceUtc,
+        CancellationToken cancellationToken = default)
+    {
+        if (!updatedSinceUtc.HasValue)
+        {
+            return FetchByFilterAsync(filter: null, cancellationToken);
+        }
+
+        var sinceUtc = updatedSinceUtc.Value.Kind == DateTimeKind.Utc
+            ? updatedSinceUtc.Value
+            : updatedSinceUtc.Value.ToUniversalTime();
+
+        var filter = $"lastUpdated$gte:{sinceUtc:yyyy-MM-ddTHH:mm:ssZ}";
+        return FetchByFilterAsync(filter, cancellationToken);
+    }
+
     private static string BuildDateRangeFilter(string baseFilter, DateTime fromDate, DateTime? toDate)
     {
         var fromUtc = NormalizeFilterDate(fromDate, isEndOfDay: false);
@@ -76,18 +93,31 @@ public sealed class EconomicTimeEntryClient : IEconomicTimeEntryClient
         return filter;
     }
 
-    private async Task<IReadOnlyList<EconomicTimeEntryDto>> FetchByFilterAsync(string filter, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<EconomicTimeEntryDto>> FetchByFilterAsync(string? filter, CancellationToken cancellationToken)
     {
         var all = new List<EconomicTimeEntryDto>();
         string? cursor = null;
-        var encodedFilter = Uri.EscapeDataString(filter);
+        var encodedFilter = string.IsNullOrWhiteSpace(filter) ? null : Uri.EscapeDataString(filter);
 
         do
         {
-            var url = string.IsNullOrWhiteSpace(cursor)
-                ? $"TimeEntries?filter={encodedFilter}"
-                : $"TimeEntries?filter={encodedFilter}" +
-                  $"&cursor={Uri.EscapeDataString(cursor)}";
+            var url = "TimeEntries";
+            var queryParams = new List<string>();
+
+            if (encodedFilter is not null)
+            {
+                queryParams.Add($"filter={encodedFilter}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(cursor))
+            {
+                queryParams.Add($"cursor={Uri.EscapeDataString(cursor)}");
+            }
+
+            if (queryParams.Count > 0)
+            {
+                url += "?" + string.Join("&", queryParams);
+            }
 
             using var request = BuildGet(url);
             using var response = await _httpClient.SendAsync(request, cancellationToken);

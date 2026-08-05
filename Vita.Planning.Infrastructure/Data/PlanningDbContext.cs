@@ -55,6 +55,9 @@ public sealed class PlanningDbContext : DbContext
     public DbSet<ResourcePlanSnapshot> ResourcePlanSnapshots => Set<ResourcePlanSnapshot>();
     public DbSet<ResourcePlanSnapshotEntry> ResourcePlanSnapshotEntries => Set<ResourcePlanSnapshotEntry>();
     public DbSet<ProjectTeamMember> ProjectTeamMembers => Set<ProjectTeamMember>();
+    public DbSet<OvertimeAdjustment> OvertimeAdjustments => Set<OvertimeAdjustment>();
+    public DbSet<VwOvertimeBalance> OvertimeBalanceDaily => Set<VwOvertimeBalance>();
+    public DbSet<ExtTimeEntry> TimeEntries => Set<ExtTimeEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -174,5 +177,14 @@ public sealed class PlanningDbContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.ProjectMetadataId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VwOvertimeBalance>()
+            .HasNoKey()
+            .ToView("vw_overtime_balance", "core");
+
+        modelBuilder.Entity<ExtTimeEntry>().HasKey(x => x.Number);
+        modelBuilder.Entity<ExtTimeEntry>().Property(x => x.NumberOfHours).HasPrecision(9, 2);
+        modelBuilder.Entity<ExtTimeEntry>().HasIndex(x => new { x.EmployeeNumber, x.Date });
+        modelBuilder.Entity<ExtTimeEntry>().HasIndex(x => x.LastUpdated);
     }
 }

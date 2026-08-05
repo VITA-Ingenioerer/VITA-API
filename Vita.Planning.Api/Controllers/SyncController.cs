@@ -22,6 +22,7 @@ public sealed class SyncController : ControllerBase
     private readonly IProjectEmployeeSyncService _projectEmployeeSyncService;
     private readonly IActivitySyncService _activitySyncService;
     private readonly IProjectActivitySyncService _projectActivitySyncService;
+    private readonly ITimeEntrySyncService _timeEntrySyncService;
 
     public SyncController(
         ISyncRunService syncRunService,
@@ -33,7 +34,8 @@ public sealed class SyncController : ControllerBase
         IProjectEmployeeGroupSyncService projectEmployeeGroupSyncService,
         IProjectEmployeeSyncService projectEmployeeSyncService,
         IActivitySyncService activitySyncService,
-        IProjectActivitySyncService projectActivitySyncService)
+        IProjectActivitySyncService projectActivitySyncService,
+        ITimeEntrySyncService timeEntrySyncService)
     {
         _syncRunService = syncRunService;
         _userSyncService = userSyncService;
@@ -45,6 +47,7 @@ public sealed class SyncController : ControllerBase
         _projectEmployeeSyncService = projectEmployeeSyncService;
         _activitySyncService = activitySyncService;
         _projectActivitySyncService = projectActivitySyncService;
+        _timeEntrySyncService = timeEntrySyncService;
     }
 
     [HttpPost("test-run")]
@@ -152,6 +155,20 @@ public sealed class SyncController : ControllerBase
     public async Task<IActionResult> SyncProjectActivities(CancellationToken cancellationToken)
     {
         var result = await _projectActivitySyncService.SyncProjectActivitiesAsync("manual-api", cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("time-entries/all")]
+    public async Task<IActionResult> SyncAllTimeEntries(CancellationToken cancellationToken)
+    {
+        var result = await _timeEntrySyncService.SyncAllTimeEntriesAsync("manual-api", cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("time-entries/new")]
+    public async Task<IActionResult> SyncNewTimeEntries(CancellationToken cancellationToken)
+    {
+        var result = await _timeEntrySyncService.SyncNewTimeEntriesAsync("manual-api", cancellationToken);
         return Ok(result);
     }
 
