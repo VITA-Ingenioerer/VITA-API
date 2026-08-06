@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Vita.Planning.Application.DTOs;
 using Vita.Planning.Application.Interfaces;
 using Vita.Planning.Infrastructure.Data;
@@ -548,6 +549,194 @@ public sealed class CapacityImportController : ControllerBase
         return Ok(result);
     }
 
+    private static readonly Regex LegacyFlexObsRowRegex = new(
+        @"<tr>\s*<td>\s*(\d+)\s*</td>\s*<td>\s*(\d+)\s*</td>\s*<td>\s*Uge\s+(\d+)\s+([A-Za-zæøåÆØÅ]+)\s+(\d+)\s*</td>\s*<td>\s*(-?[\d.]+)\s*</td>",
+        RegexOptions.Compiled);
+
+    private static readonly Dictionary<string, int> DanishMonths = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Januar"] = 1, ["Februar"] = 2, ["Marts"] = 3, ["April"] = 4,
+        ["Maj"] = 5, ["Juni"] = 6, ["Juli"] = 7, ["August"] = 8,
+        ["September"] = 9, ["Oktober"] = 10, ["November"] = 11, ["December"] = 12
+    };
+
+    /// <summary>
+    /// Local-only, one-time migration from the legacy FlexObs system (an old ASP.NET MVC app
+    /// on the internal network — reachable only when this API runs on a machine with LAN
+    /// access to it, i.e. locally in debug, never from Azure). "Uge N ⟨month⟩ ⟨year⟩" is a
+    /// day-of-year-based week counter (week = ceil(dayOfYear / 7)), not ISO — a week that
+    /// spans a month boundary gets one row per month it touches, and those two rows are
+    /// genuinely different point-in-time balances (a real payout can land between them), not
+    /// a relabeled duplicate. Each row is resolved to the last day of its own month that's
+    /// still within its week number, and imported as its own core.overtime_adjustments
+    /// checkpoint — Flexvalue is already a running balance, so no delta math is needed.
+    /// </summary>
+    [HttpPost("legacy-flexobs")]
+    public async Task<ActionResult<LegacyFlexObsImportResult>> ImportLegacyFlexObs(
+        [FromQuery] string sourceUrl = "http://192.168.128.93:7500/Flexobs",
+        [FromQuery] DateOnly? cutoffDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var effectiveCutoff = cutoffDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-1));
+
+        var result = new LegacyFlexObsImportResult();
+        var runId = await _syncRunService.StartRunAsync(
+            "legacy_flexobs", "legacy-flexobs", ResolveInitiatedBy(),
+            notes: $"source={sourceUrl}, cutoff={effectiveCutoff:yyyy-MM-dd}", cancellationToken: cancellationToken);
+
+        string html;
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            html = await client.GetStringAsync(sourceUrl, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await _syncRunService.LogErrorAsync(
+                runId, "legacy_flexobs", "legacy-flexobs", "fetch", ex.Message, cancellationToken: cancellationToken);
+            await _syncRunService.CompleteRunAsync(runId, "failed", errorCount: 1, notes: ex.Message, cancellationToken: cancellationToken);
+            return StatusCode(502, new { message = $"Failed to fetch {sourceUrl}: {ex.Message}. This only works when the API is running locally on the same network as the legacy system." });
+        }
+
+        var matches = LegacyFlexObsRowRegex.Matches(html);
+        var knownEmployeeIds = await _dbContext.Users.AsNoTracking().Select(u => u.EmployeeId).ToHashSetAsync(cancellationToken);
+        var existingAdjustments = (await _dbContext.OvertimeAdjustments
+            .AsNoTracking()
+            .Select(a => new { a.EmployeeId, a.EffectiveMonth })
+            .ToListAsync(cancellationToken))
+            .Select(a => (a.EmployeeId, a.EffectiveMonth))
+            .ToHashSet();
+
+        var newlyAdded = new HashSet<(int EmployeeId, DateOnly Date)>();
+        var pending = new List<OvertimeAdjustment>();
+        var now = DateTime.UtcNow;
+
+        foreach (Match m in matches)
+        {
+            var obsId = m.Groups[1].Value;
+            var employeeId = int.Parse(m.Groups[2].Value);
+            var weekNumber = int.Parse(m.Groups[3].Value);
+            var monthName = m.Groups[4].Value;
+            var year = int.Parse(m.Groups[5].Value);
+            var valueText = m.Groups[6].Value;
+
+            if (!knownEmployeeIds.Contains(employeeId))
+            {
+                result.Skipped++;
+                result.Issues.Add(new LegacyFlexObsImportIssue { ObsId = obsId, Reason = $"No matching employee for ID {employeeId}." });
+                continue;
+            }
+
+            var resolvedDate = ResolveWeekDate(weekNumber, monthName, year);
+            if (resolvedDate is null)
+            {
+                result.Skipped++;
+                result.Issues.Add(new LegacyFlexObsImportIssue { ObsId = obsId, Reason = $"Week {weekNumber} does not overlap {monthName} {year}." });
+                continue;
+            }
+
+            if (resolvedDate < effectiveCutoff)
+            {
+                result.SkippedBeforeCutoff++;
+                continue;
+            }
+
+            if (!decimal.TryParse(valueText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var hours))
+            {
+                result.Skipped++;
+                result.Issues.Add(new LegacyFlexObsImportIssue { ObsId = obsId, Reason = $"'{valueText}' is not a valid Flexvalue." });
+                continue;
+            }
+
+            var key = (employeeId, resolvedDate.Value);
+            if (existingAdjustments.Contains((employeeId, resolvedDate.Value)) || !newlyAdded.Add(key))
+            {
+                result.Skipped++;
+                continue;
+            }
+
+            pending.Add(new OvertimeAdjustment
+            {
+                EmployeeId = employeeId,
+                EffectiveMonth = resolvedDate.Value,
+                Hours = hours,
+                Notes = $"Legacy FlexObs import (obsID {obsId}, Uge {weekNumber} {monthName} {year})",
+                CreatedAtUtc = now
+            });
+
+            if (pending.Count >= 500)
+            {
+                _dbContext.OvertimeAdjustments.AddRange(pending);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                result.Created += pending.Count;
+                pending.Clear();
+            }
+        }
+
+        if (pending.Count > 0)
+        {
+            _dbContext.OvertimeAdjustments.AddRange(pending);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            result.Created += pending.Count;
+        }
+
+        foreach (var issue in result.Issues)
+        {
+            await _syncRunService.LogErrorAsync(
+                runId, "legacy_flexobs", "legacy-flexobs", "row", issue.Reason, recordKey: issue.ObsId, cancellationToken: cancellationToken);
+        }
+
+        await _syncRunService.CompleteRunAsync(
+            runId, result.Issues.Count == 0 ? "success" : "partial",
+            rowsRead: matches.Count, rowsInserted: result.Created,
+            errorCount: result.Issues.Count, cancellationToken: cancellationToken);
+
+        result.Message = "Legacy FlexObs import complete.";
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// FlexObs week numbers are real ISO 8601 weeks (Monday-start, week 1 = the week
+    /// containing January 4th) — not a simple day-of-year/7 approximation, which is close
+    /// enough to pass a casual spot-check but drifts by a few days and gets month-boundary
+    /// weeks wrong. The label's year is the calendar year of `month`, which is NOT always the
+    /// ISO week-year (ISO week 52/53 near New Year's can belong to the *previous* ISO year and
+    /// still land partly in January; ISO week 1 can belong to the *next* ISO year and land
+    /// partly in December) — hence trying the stated year and both neighbors.
+    /// Resolves to the last day of `month`/`year` that still falls within `weekNumber`.
+    /// </summary>
+    private static DateOnly? ResolveWeekDate(int weekNumber, string monthName, int year)
+    {
+        if (!DanishMonths.TryGetValue(monthName, out var month))
+        {
+            return null;
+        }
+
+        var monthStart = new DateOnly(year, month, 1);
+        var monthEnd = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+
+        foreach (var isoYear in new[] { year, year - 1, year + 1 })
+        {
+            var weekStart = IsoWeekStart(isoYear, weekNumber);
+            var weekEnd = weekStart.AddDays(6);
+
+            if (weekEnd >= monthStart && weekStart <= monthEnd)
+            {
+                return weekEnd < monthEnd ? weekEnd : monthEnd;
+            }
+        }
+
+        return null;
+    }
+
+    private static DateOnly IsoWeekStart(int isoYear, int isoWeek)
+    {
+        var jan4 = new DateOnly(isoYear, 1, 4);
+        var jan4IsoDayOfWeek = ((int)jan4.DayOfWeek + 6) % 7; // Monday=0 .. Sunday=6
+        var week1Monday = jan4.AddDays(-jan4IsoDayOfWeek);
+        return week1Monday.AddDays((isoWeek - 1) * 7);
+    }
+
     private static int? FindHeaderColumn(IReadOnlyDictionary<string, int> headers, params string[] candidates)
     {
         foreach (var candidate in candidates)
@@ -788,5 +977,20 @@ public sealed class OvertimeAdjustmentImportIssue
 {
     public int Row { get; set; }
     public string EconomicId { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class LegacyFlexObsImportResult
+{
+    public string Message { get; set; } = string.Empty;
+    public int Created { get; set; }
+    public int Skipped { get; set; }
+    public int SkippedBeforeCutoff { get; set; }
+    public List<LegacyFlexObsImportIssue> Issues { get; set; } = [];
+}
+
+public sealed class LegacyFlexObsImportIssue
+{
+    public string ObsId { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
 }
