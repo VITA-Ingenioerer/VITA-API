@@ -175,11 +175,21 @@ public sealed class OvertimeBalanceRefreshService : IOvertimeBalanceRefreshServi
             SELECT TOP (50000) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS n
             FROM sys.all_objects a CROSS JOIN sys.all_objects b
         ),
+        -- Bounded to the LATER of "profile went into effect" and "earliest actual time entry
+        -- we have" — never generate a calendar day older than our actual-hours coverage, or
+        -- every such day silently contributes a full day of phantom expected-hours debt
+        -- (0 actual - full norm) to running_balance forever. This was producing balances in
+        -- the tens of thousands of hours for people whose profile predates their time-entry
+        -- history by years.
         employee_range AS (
-            SELECT employee_id, MIN(effective_from) AS start_date
-            FROM core.employee_capacity_profiles
-            WHERE is_active = 1 AND employee_id = {employeeId}
-            GROUP BY employee_id
+            SELECT
+                {employeeId} AS employee_id,
+                (SELECT MAX(bound) FROM (VALUES
+                    ((SELECT MIN(effective_from) FROM core.employee_capacity_profiles
+                      WHERE is_active = 1 AND employee_id = {employeeId})),
+                    ((SELECT MIN([date]) FROM ext.time_entries
+                      WHERE employee_number = {employeeId} AND is_approved = 1))
+                ) AS bounds(bound)) AS start_date
         ),
         calendar AS (
             SELECT er.employee_id,
@@ -267,23 +277,52 @@ public sealed class OvertimeBalanceRefreshService : IOvertimeBalanceRefreshServi
                     WHEN COALESCE(bh.override_hours, bh.profile_hours, 0) - bh.holiday_reduction < 0 THEN 0
                     ELSE COALESCE(bh.override_hours, bh.profile_hours, 0) - bh.holiday_reduction
                 END AS expected_hours,
-                COALESCE(oa.hours, 0) AS adjustment_hours
+                -- A regulering is a CHECKPOINT, not a delta: "the flex balance IS this value as
+                -- of this date," not "add/subtract this many hours." MAX guards against two
+                -- adjustments accidentally sharing the same effective_month multiplying rows.
+                (SELECT MAX(oa.hours) FROM core.overtime_adjustments oa
+                 WHERE oa.employee_id = bh.employee_id AND oa.effective_month = bh.work_date) AS checkpoint_value
             FROM base_hours bh
-            LEFT JOIN core.overtime_adjustments oa
-                ON oa.employee_id = bh.employee_id
-                AND oa.effective_month = bh.work_date
+        ),
+        ordered AS (
+            SELECT d.*, ROW_NUMBER() OVER (ORDER BY d.work_date) AS rn
+            FROM daily d
+        ),
+        -- running_balance can't be a flat SUM(...) window anymore: each checkpoint rebases
+        -- everything after it, which only a sequential (recursive) walk can express.
+        balance (employee_id, work_date, actual_hours, expected_hours, checkpoint_value, rn, running_balance) AS (
+            SELECT
+                o.employee_id, o.work_date, o.actual_hours, o.expected_hours, o.checkpoint_value, o.rn,
+                CAST(COALESCE(o.checkpoint_value, o.actual_hours - o.expected_hours) AS DECIMAL(18, 2))
+            FROM ordered o
+            WHERE o.rn = 1
+
+            UNION ALL
+
+            SELECT
+                o.employee_id, o.work_date, o.actual_hours, o.expected_hours, o.checkpoint_value, o.rn,
+                CAST(COALESCE(o.checkpoint_value, b.running_balance + (o.actual_hours - o.expected_hours)) AS DECIMAL(18, 2))
+            FROM ordered o
+            JOIN balance b ON o.rn = b.rn + 1
         )
         SELECT
-            d.employee_id,
-            d.work_date,
-            d.actual_hours,
-            d.expected_hours,
-            d.adjustment_hours,
-            d.actual_hours - d.expected_hours + d.adjustment_hours AS daily_delta,
-            SUM(d.actual_hours - d.expected_hours + d.adjustment_hours)
-                OVER (PARTITION BY d.employee_id ORDER BY d.work_date
-                      ROWS UNBOUNDED PRECEDING) AS running_balance
-        FROM daily d
-        ORDER BY d.work_date;
+            b.employee_id,
+            b.work_date,
+            b.actual_hours,
+            b.expected_hours,
+            -- The correction this checkpoint applied, isolated from the normal work-hours
+            -- delta — i.e. how far off the naive running total was, not the checkpoint's
+            -- absolute value. This is what the chart's "regulering" marker and the weekly
+            -- table's "Regulering" column show, and both still mean exactly that.
+            CASE
+                WHEN b.checkpoint_value IS NULL THEN CAST(0 AS DECIMAL(18, 2))
+                ELSE b.running_balance - (b.actual_hours - b.expected_hours)
+                     - LAG(b.running_balance, 1, CAST(0 AS DECIMAL(18, 2))) OVER (ORDER BY b.work_date)
+            END AS adjustment_hours,
+            b.running_balance - LAG(b.running_balance, 1, CAST(0 AS DECIMAL(18, 2))) OVER (ORDER BY b.work_date) AS daily_delta,
+            b.running_balance
+        FROM balance b
+        ORDER BY b.work_date
+        OPTION (MAXRECURSION 0);
         """;
 }
