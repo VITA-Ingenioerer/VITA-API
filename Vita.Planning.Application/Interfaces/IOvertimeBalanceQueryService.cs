@@ -9,4 +9,10 @@ public interface IOvertimeBalanceQueryService
 
     Task<OvertimeBalanceSummaryDto?> GetCurrentBalanceAsync(
         int employeeId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<OvertimeBalanceSummaryDto>> GetCurrentBalancesAsync(
+        IReadOnlyCollection<int>? employeeIds, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<OvertimeTrendPointDto>> GetTrendAsync(
+        DateOnly from, DateOnly to, IReadOnlyCollection<int>? employeeIds, CancellationToken cancellationToken = default);
 }

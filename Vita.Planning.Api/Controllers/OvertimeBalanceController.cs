@@ -52,4 +52,40 @@ public sealed class OvertimeBalanceController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Latest running balance for multiple employees in one call. Omit employeeIds for every
+    /// employee. Backs the company/team dashboard so it doesn't do one request per person.
+    /// </summary>
+    [HttpGet("current")]
+    public async Task<ActionResult<IReadOnlyList<OvertimeBalanceSummaryDto>>> GetCurrentBatch(
+        [FromQuery] int[]? employeeIds,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.GetCurrentBalancesAsync(
+            employeeIds is { Length: > 0 } ? employeeIds : null, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Daily total/average running balance across employees, for the aggregate trend chart.
+    /// Aggregation happens in SQL so this scales to the whole company. Omit employeeIds for
+    /// every employee.
+    /// </summary>
+    [HttpGet("trend")]
+    public async Task<ActionResult<IReadOnlyList<OvertimeTrendPointDto>>> GetTrend(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] int[]? employeeIds,
+        CancellationToken cancellationToken)
+    {
+        if (to < from)
+        {
+            return BadRequest(new { message = "'to' must be greater than or equal to 'from'." });
+        }
+
+        var result = await _service.GetTrendAsync(
+            from, to, employeeIds is { Length: > 0 } ? employeeIds : null, cancellationToken);
+        return Ok(result);
+    }
 }

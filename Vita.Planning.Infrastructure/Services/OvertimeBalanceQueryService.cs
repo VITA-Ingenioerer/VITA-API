@@ -44,6 +44,53 @@ public sealed class OvertimeBalanceQueryService : IOvertimeBalanceQueryService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<OvertimeBalanceSummaryDto>> GetCurrentBalancesAsync(
+        IReadOnlyCollection<int>? employeeIds, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.OvertimeBalanceDaily.AsNoTracking();
+        if (employeeIds is { Count: > 0 })
+        {
+            query = query.Where(x => employeeIds.Contains(x.EmployeeId));
+        }
+
+        return await query
+            .GroupBy(x => x.EmployeeId)
+            .Select(g => g.OrderByDescending(x => x.WorkDate).First())
+            .Select(x => new OvertimeBalanceSummaryDto
+            {
+                EmployeeId = x.EmployeeId,
+                DisplayName = x.DisplayName,
+                AsOfDate = x.WorkDate,
+                RunningBalance = x.RunningBalance ?? 0m
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<OvertimeTrendPointDto>> GetTrendAsync(
+        DateOnly from, DateOnly to, IReadOnlyCollection<int>? employeeIds, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.OvertimeBalanceDaily
+            .AsNoTracking()
+            .Where(x => x.WorkDate >= from && x.WorkDate <= to);
+
+        if (employeeIds is { Count: > 0 })
+        {
+            query = query.Where(x => employeeIds.Contains(x.EmployeeId));
+        }
+
+        return await query
+            .GroupBy(x => x.WorkDate)
+            .Select(g => new OvertimeTrendPointDto
+            {
+                WorkDate = g.Key,
+                TotalBalance = g.Sum(x => x.RunningBalance ?? 0m),
+                AverageBalance = g.Average(x => x.RunningBalance ?? 0m),
+                EmployeeCount = g.Count()
+            })
+            .OrderBy(x => x.WorkDate)
+            .ToListAsync(cancellationToken);
+    }
+
     private static Expression<Func<VwOvertimeBalance, OvertimeBalanceDayDto>> MapToDtoExpression()
     {
         return x => new OvertimeBalanceDayDto
