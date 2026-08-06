@@ -54,29 +54,32 @@ public sealed class OvertimeBalanceController : ControllerBase
     }
 
     /// <summary>
-    /// Latest running balance for multiple employees in one call. Omit employeeIds for every
-    /// employee. Backs the company/team dashboard so it doesn't do one request per person.
+    /// Latest running balance for multiple employees in one call. Omit employeeIds (or the
+    /// whole body) for every employee. Backs the company/team dashboard so it doesn't do one
+    /// request per person. POST, not GET: a few hundred employeeIds as repeated query params
+    /// produces a URL long enough that Azure's front end rejects it before the request ever
+    /// reaches this controller.
     /// </summary>
-    [HttpGet("current")]
+    [HttpPost("current")]
     public async Task<ActionResult<IReadOnlyList<OvertimeBalanceSummaryDto>>> GetCurrentBatch(
-        [FromQuery] int[]? employeeIds,
+        [FromBody] EmployeeIdsFilterRequest? request,
         CancellationToken cancellationToken)
     {
         var result = await _service.GetCurrentBalancesAsync(
-            employeeIds is { Length: > 0 } ? employeeIds : null, cancellationToken);
+            request?.EmployeeIds is { Length: > 0 } ? request.EmployeeIds : null, cancellationToken);
         return Ok(result);
     }
 
     /// <summary>
     /// Daily total/average running balance across employees, for the aggregate trend chart.
-    /// Aggregation happens in SQL so this scales to the whole company. Omit employeeIds for
-    /// every employee.
+    /// Aggregation happens in SQL so this scales to the whole company. Omit employeeIds (or
+    /// the whole body) for every employee. POST for the same reason as GetCurrentBatch above.
     /// </summary>
-    [HttpGet("trend")]
+    [HttpPost("trend")]
     public async Task<ActionResult<IReadOnlyList<OvertimeTrendPointDto>>> GetTrend(
         [FromQuery] DateOnly from,
         [FromQuery] DateOnly to,
-        [FromQuery] int[]? employeeIds,
+        [FromBody] EmployeeIdsFilterRequest? request,
         CancellationToken cancellationToken)
     {
         if (to < from)
@@ -85,7 +88,7 @@ public sealed class OvertimeBalanceController : ControllerBase
         }
 
         var result = await _service.GetTrendAsync(
-            from, to, employeeIds is { Length: > 0 } ? employeeIds : null, cancellationToken);
+            from, to, request?.EmployeeIds is { Length: > 0 } ? request.EmployeeIds : null, cancellationToken);
         return Ok(result);
     }
 }

@@ -53,9 +53,19 @@ public sealed class OvertimeBalanceQueryService : IOvertimeBalanceQueryService
             query = query.Where(x => employeeIds.Contains(x.EmployeeId));
         }
 
-        return await query
+        // GroupBy(...).Select(g => g.OrderByDescending(...).First()) ("top row per group")
+        // does not translate reliably in this EF Core version — max-date-then-join does.
+        var latestDatePerEmployee = query
             .GroupBy(x => x.EmployeeId)
-            .Select(g => g.OrderByDescending(x => x.WorkDate).First())
+            .Select(g => new { EmployeeId = g.Key, WorkDate = g.Max(x => x.WorkDate) });
+
+        var latestRows =
+            from row in query
+            join latest in latestDatePerEmployee
+                on new { row.EmployeeId, row.WorkDate } equals new { latest.EmployeeId, latest.WorkDate }
+            select row;
+
+        return await latestRows
             .Select(x => new OvertimeBalanceSummaryDto
             {
                 EmployeeId = x.EmployeeId,
