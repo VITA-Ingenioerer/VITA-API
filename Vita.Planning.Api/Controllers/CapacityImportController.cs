@@ -368,6 +368,186 @@ public sealed class CapacityImportController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Bulk-imports legacy flex/overtime opening balances from an uploaded .xlsx sheet
+    /// (columns: e-conomic Id, Hours, optional Notes). Every row becomes one
+    /// core.overtime_adjustments entry dated to the first of the given effectiveMonth, so
+    /// vw_overtime_balance's running total starts from the correct historical figure instead
+    /// of zero. Re-running the same file is safe: a row is skipped (and reported) if an
+    /// adjustment already exists for that employee and month.
+    /// </summary>
+    [HttpPost("overtime-adjustments-excel")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<OvertimeAdjustmentImportResult>> ImportOvertimeAdjustmentsExcel(
+        IFormFile file,
+        [FromQuery] DateOnly effectiveMonth,
+        CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { message = "An Excel file is required." });
+        }
+
+        if (!Path.GetExtension(file.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "Only .xlsx files are supported." });
+        }
+
+        var normalizedMonth = new DateOnly(effectiveMonth.Year, effectiveMonth.Month, 1);
+        var result = new OvertimeAdjustmentImportResult();
+        var now = DateTime.UtcNow;
+        var runId = await _syncRunService.StartRunAsync(
+            "internal", "overtime-adjustments-excel", ResolveInitiatedBy(),
+            notes: $"{file.FileName} (effectiveMonth={normalizedMonth:yyyy-MM})", cancellationToken: cancellationToken);
+
+        await using var stream = file.OpenReadStream();
+        using var workbook = new ClosedXML.Excel.XLWorkbook(stream);
+
+        ClosedXML.Excel.IXLWorksheet worksheet;
+        ClosedXML.Excel.IXLRow headerRow;
+        Dictionary<string, int> headers;
+        try
+        {
+            worksheet = workbook.Worksheets.FirstOrDefault()
+                ?? throw new InvalidOperationException("The workbook does not contain any worksheets.");
+
+            headerRow = worksheet.FirstRowUsed()
+                ?? throw new InvalidOperationException("The worksheet does not contain a header row.");
+
+            var lastCol = headerRow.LastCellUsed()?.Address.ColumnNumber ?? 0;
+            headers = Enumerable.Range(1, lastCol)
+                .Select(c => new { Col = c, Header = worksheet.Cell(headerRow.RowNumber(), c).GetString().Trim() })
+                .Where(x => !string.IsNullOrWhiteSpace(x.Header))
+                .ToDictionary(x => x.Header, x => x.Col, StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            await _syncRunService.LogErrorAsync(
+                runId, "internal", "overtime-adjustments-excel", "parse-workbook", ex.Message, cancellationToken: cancellationToken);
+            await _syncRunService.CompleteRunAsync(runId, "failed", errorCount: 1, notes: ex.Message, cancellationToken: cancellationToken);
+            throw;
+        }
+
+        var economicIdCol = FindHeaderColumn(headers, "e-conomic Id", "e-conomic id", "economic id", "economicid");
+        var hoursCol = FindHeaderColumn(headers, "Hours", "Timer");
+        var notesCol = FindHeaderColumn(headers, "Notes", "Bemærkning", "Bemaerkning");
+
+        if (economicIdCol is null || hoursCol is null)
+        {
+            const string missingColumnsMessage = "The worksheet must contain columns: e-conomic Id, Hours.";
+            await _syncRunService.LogErrorAsync(
+                runId, "internal", "overtime-adjustments-excel", "validate-columns", missingColumnsMessage, cancellationToken: cancellationToken);
+            await _syncRunService.CompleteRunAsync(runId, "failed", errorCount: 1, notes: missingColumnsMessage, cancellationToken: cancellationToken);
+            return BadRequest(new { message = missingColumnsMessage });
+        }
+
+        var dataRows = worksheet.RowsUsed().Where(r => r.RowNumber() > headerRow.RowNumber()).ToList();
+
+        foreach (var row in dataRows)
+        {
+            var rowNumber = row.RowNumber();
+            var economicIdText = row.Cell(economicIdCol.Value).GetFormattedString().Trim();
+
+            if (string.IsNullOrWhiteSpace(economicIdText))
+            {
+                continue; // blank row
+            }
+
+            if (!int.TryParse(economicIdText, out var employeeId))
+            {
+                result.Skipped++;
+                result.Issues.Add(new OvertimeAdjustmentImportIssue
+                {
+                    Row = rowNumber,
+                    EconomicId = economicIdText,
+                    Reason = "e-conomic Id is not a valid number."
+                });
+                continue;
+            }
+
+            var employeeExists = await _dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.EmployeeId == employeeId, cancellationToken);
+
+            if (!employeeExists)
+            {
+                result.Skipped++;
+                result.Issues.Add(new OvertimeAdjustmentImportIssue
+                {
+                    Row = rowNumber,
+                    EconomicId = economicIdText,
+                    Reason = "No matching employee found for this e-conomic Id."
+                });
+                continue;
+            }
+
+            var hoursText = row.Cell(hoursCol.Value).GetFormattedString().Trim().Replace(',', '.');
+
+            if (!decimal.TryParse(hoursText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var hours))
+            {
+                result.Skipped++;
+                result.Issues.Add(new OvertimeAdjustmentImportIssue
+                {
+                    Row = rowNumber,
+                    EconomicId = economicIdText,
+                    Reason = $"'{hoursText}' is not a valid hours value."
+                });
+                continue;
+            }
+
+            var alreadyImported = await _dbContext.OvertimeAdjustments
+                .AsNoTracking()
+                .AnyAsync(a => a.EmployeeId == employeeId && a.EffectiveMonth == normalizedMonth, cancellationToken);
+
+            if (alreadyImported)
+            {
+                result.Skipped++;
+                result.Issues.Add(new OvertimeAdjustmentImportIssue
+                {
+                    Row = rowNumber,
+                    EconomicId = economicIdText,
+                    Reason = $"An adjustment already exists for this employee for {normalizedMonth:yyyy-MM}."
+                });
+                continue;
+            }
+
+            var notes = notesCol.HasValue
+                ? row.Cell(notesCol.Value).GetFormattedString().Trim()
+                : null;
+
+            _dbContext.OvertimeAdjustments.Add(new OvertimeAdjustment
+            {
+                EmployeeId = employeeId,
+                EffectiveMonth = normalizedMonth,
+                Hours = hours,
+                Notes = string.IsNullOrWhiteSpace(notes) ? $"Legacy opening balance import ({file.FileName})" : notes,
+                CreatedAtUtc = now
+            });
+
+            result.Created++;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var issue in result.Issues)
+        {
+            await _syncRunService.LogErrorAsync(
+                runId, "internal", "overtime-adjustments-excel", "row",
+                issue.Reason, recordKey: $"row {issue.Row} ({issue.EconomicId})", cancellationToken: cancellationToken);
+        }
+
+        await _syncRunService.CompleteRunAsync(
+            runId,
+            result.Issues.Count == 0 ? "success" : "partial",
+            rowsRead: dataRows.Count,
+            rowsInserted: result.Created,
+            errorCount: result.Issues.Count,
+            cancellationToken: cancellationToken);
+
+        result.Message = "Overtime adjustment import complete.";
+        return Ok(result);
+    }
+
     private static int? FindHeaderColumn(IReadOnlyDictionary<string, int> headers, params string[] candidates)
     {
         foreach (var candidate in candidates)
@@ -594,4 +774,19 @@ public sealed class CapacityGenerateResult
     public string Message { get; set; } = string.Empty;
     public int Created { get; set; }
     public int Skipped { get; set; }
+}
+
+public sealed class OvertimeAdjustmentImportResult
+{
+    public string Message { get; set; } = string.Empty;
+    public int Created { get; set; }
+    public int Skipped { get; set; }
+    public List<OvertimeAdjustmentImportIssue> Issues { get; set; } = [];
+}
+
+public sealed class OvertimeAdjustmentImportIssue
+{
+    public int Row { get; set; }
+    public string EconomicId { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
 }
