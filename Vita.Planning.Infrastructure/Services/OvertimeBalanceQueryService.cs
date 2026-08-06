@@ -1,14 +1,20 @@
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 using Vita.Planning.Application.DTOs;
 using Vita.Planning.Application.Interfaces;
 using Vita.Planning.Infrastructure.Data;
-using Vita.Planning.Infrastructure.Data.Entities;
 
 namespace Vita.Planning.Infrastructure.Services;
 
 public sealed class OvertimeBalanceQueryService : IOvertimeBalanceQueryService
 {
+    // "Current balance" only needs the most recent tracked row per employee — RunningBalance
+    // on that row already IS the full cumulative total, so older rows add nothing but load.
+    // The materialized table is small/indexed so this isn't load-bearing anymore (it was,
+    // against the old live view), but it's a harmless bound to keep: any employee with an
+    // active profile gets a row for today on every refresh, so this never excludes anyone
+    // whose data is actually up to date.
+    private static readonly int CurrentBalanceLookbackDays = 90;
+
     private readonly PlanningDbContext _dbContext;
 
     public OvertimeBalanceQueryService(PlanningDbContext dbContext)
@@ -19,42 +25,61 @@ public sealed class OvertimeBalanceQueryService : IOvertimeBalanceQueryService
     public async Task<IReadOnlyList<OvertimeBalanceDayDto>> GetDailyBalanceAsync(
         int employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
     {
+        var displayName = await GetDisplayNameAsync(employeeId, cancellationToken);
+
         return await _dbContext.OvertimeBalanceDaily
             .AsNoTracking()
             .Where(x => x.EmployeeId == employeeId && x.WorkDate >= from && x.WorkDate <= to)
             .OrderBy(x => x.WorkDate)
-            .Select(MapToDtoExpression())
+            .Select(x => new OvertimeBalanceDayDto
+            {
+                EmployeeId = x.EmployeeId,
+                DisplayName = displayName,
+                WorkDate = x.WorkDate,
+                ActualHours = x.ActualHours,
+                ExpectedHours = x.ExpectedHours,
+                AdjustmentHours = x.AdjustmentHours,
+                DailyDelta = x.DailyDelta,
+                RunningBalance = x.RunningBalance
+            })
             .ToListAsync(cancellationToken);
     }
 
     public async Task<OvertimeBalanceSummaryDto?> GetCurrentBalanceAsync(
         int employeeId, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.OvertimeBalanceDaily
+        var lookbackFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-CurrentBalanceLookbackDays));
+
+        var latest = await _dbContext.OvertimeBalanceDaily
             .AsNoTracking()
-            .Where(x => x.EmployeeId == employeeId)
+            .Where(x => x.EmployeeId == employeeId && x.WorkDate >= lookbackFrom)
             .OrderByDescending(x => x.WorkDate)
-            .Select(x => new OvertimeBalanceSummaryDto
-            {
-                EmployeeId = x.EmployeeId,
-                DisplayName = x.DisplayName,
-                AsOfDate = x.WorkDate,
-                RunningBalance = x.RunningBalance ?? 0m
-            })
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (latest is null)
+        {
+            return null;
+        }
+
+        return new OvertimeBalanceSummaryDto
+        {
+            EmployeeId = latest.EmployeeId,
+            DisplayName = await GetDisplayNameAsync(employeeId, cancellationToken),
+            AsOfDate = latest.WorkDate,
+            RunningBalance = latest.RunningBalance
+        };
     }
 
     public async Task<IReadOnlyList<OvertimeBalanceSummaryDto>> GetCurrentBalancesAsync(
         IReadOnlyCollection<int>? employeeIds, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.OvertimeBalanceDaily.AsNoTracking();
+        var lookbackFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-CurrentBalanceLookbackDays));
+        var query = _dbContext.OvertimeBalanceDaily.AsNoTracking().Where(x => x.WorkDate >= lookbackFrom);
         if (employeeIds is { Count: > 0 })
         {
             query = query.Where(x => employeeIds.Contains(x.EmployeeId));
         }
 
-        // GroupBy(...).Select(g => g.OrderByDescending(...).First()) ("top row per group")
-        // does not translate reliably in this EF Core version — max-date-then-join does.
         var latestDatePerEmployee = query
             .GroupBy(x => x.EmployeeId)
             .Select(g => new { EmployeeId = g.Key, WorkDate = g.Max(x => x.WorkDate) });
@@ -65,15 +90,32 @@ public sealed class OvertimeBalanceQueryService : IOvertimeBalanceQueryService
                 on new { row.EmployeeId, row.WorkDate } equals new { latest.EmployeeId, latest.WorkDate }
             select row;
 
-        return await latestRows
+        var results = await latestRows
             .Select(x => new OvertimeBalanceSummaryDto
             {
                 EmployeeId = x.EmployeeId,
-                DisplayName = x.DisplayName,
                 AsOfDate = x.WorkDate,
-                RunningBalance = x.RunningBalance ?? 0m
+                RunningBalance = x.RunningBalance
             })
             .ToListAsync(cancellationToken);
+
+        if (results.Count == 0)
+        {
+            return results;
+        }
+
+        var resultEmployeeIds = results.Select(r => r.EmployeeId).ToList();
+        var displayNames = await _dbContext.Users
+            .AsNoTracking()
+            .Where(u => resultEmployeeIds.Contains(u.EmployeeId))
+            .ToDictionaryAsync(u => u.EmployeeId, u => u.DisplayName, cancellationToken);
+
+        foreach (var result in results)
+        {
+            result.DisplayName = displayNames.GetValueOrDefault(result.EmployeeId);
+        }
+
+        return results;
     }
 
     public async Task<IReadOnlyList<OvertimeTrendPointDto>> GetTrendAsync(
@@ -93,26 +135,18 @@ public sealed class OvertimeBalanceQueryService : IOvertimeBalanceQueryService
             .Select(g => new OvertimeTrendPointDto
             {
                 WorkDate = g.Key,
-                TotalBalance = g.Sum(x => x.RunningBalance ?? 0m),
-                AverageBalance = g.Average(x => x.RunningBalance ?? 0m),
+                TotalBalance = g.Sum(x => x.RunningBalance),
+                AverageBalance = g.Average(x => x.RunningBalance),
                 EmployeeCount = g.Count()
             })
             .OrderBy(x => x.WorkDate)
             .ToListAsync(cancellationToken);
     }
 
-    private static Expression<Func<VwOvertimeBalance, OvertimeBalanceDayDto>> MapToDtoExpression()
-    {
-        return x => new OvertimeBalanceDayDto
-        {
-            EmployeeId = x.EmployeeId,
-            DisplayName = x.DisplayName,
-            WorkDate = x.WorkDate,
-            ActualHours = x.ActualHours ?? 0m,
-            ExpectedHours = x.ExpectedHours ?? 0m,
-            AdjustmentHours = x.AdjustmentHours ?? 0m,
-            DailyDelta = x.DailyDelta ?? 0m,
-            RunningBalance = x.RunningBalance ?? 0m
-        };
-    }
+    private async Task<string?> GetDisplayNameAsync(int employeeId, CancellationToken cancellationToken) =>
+        await _dbContext.Users
+            .AsNoTracking()
+            .Where(u => u.EmployeeId == employeeId)
+            .Select(u => u.DisplayName)
+            .FirstOrDefaultAsync(cancellationToken);
 }

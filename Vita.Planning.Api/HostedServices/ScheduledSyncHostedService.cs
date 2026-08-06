@@ -124,6 +124,9 @@ public sealed class ScheduledSyncHostedService : BackgroundService
             var timeEntrySyncService =
                 scope.ServiceProvider.GetRequiredService<ITimeEntrySyncService>();
 
+            var overtimeBalanceRefreshService =
+                scope.ServiceProvider.GetRequiredService<IOvertimeBalanceRefreshService>();
+
             await RunStepAsync(
                 "project-statuses",
                 () => projectStatusSyncService.SyncProjectStatusesAsync(initiatedBy, cancellationToken));
@@ -161,6 +164,10 @@ public sealed class ScheduledSyncHostedService : BackgroundService
             await RunStepAsync(
                 "time-entries",
                 () => timeEntrySyncService.SyncNewTimeEntriesAsync(initiatedBy, cancellationToken));
+
+            await RunStepAsync(
+                "overtime-balance-refresh",
+                () => overtimeBalanceRefreshService.RefreshChangedEmployeesAsync(initiatedBy, cancellationToken));
 
             _logger.LogInformation("Scheduled sync run completed.");
         }

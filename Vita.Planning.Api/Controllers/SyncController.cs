@@ -23,6 +23,7 @@ public sealed class SyncController : ControllerBase
     private readonly IActivitySyncService _activitySyncService;
     private readonly IProjectActivitySyncService _projectActivitySyncService;
     private readonly ITimeEntrySyncService _timeEntrySyncService;
+    private readonly IOvertimeBalanceRefreshService _overtimeBalanceRefreshService;
 
     public SyncController(
         ISyncRunService syncRunService,
@@ -35,7 +36,8 @@ public sealed class SyncController : ControllerBase
         IProjectEmployeeSyncService projectEmployeeSyncService,
         IActivitySyncService activitySyncService,
         IProjectActivitySyncService projectActivitySyncService,
-        ITimeEntrySyncService timeEntrySyncService)
+        ITimeEntrySyncService timeEntrySyncService,
+        IOvertimeBalanceRefreshService overtimeBalanceRefreshService)
     {
         _syncRunService = syncRunService;
         _userSyncService = userSyncService;
@@ -48,6 +50,7 @@ public sealed class SyncController : ControllerBase
         _activitySyncService = activitySyncService;
         _projectActivitySyncService = projectActivitySyncService;
         _timeEntrySyncService = timeEntrySyncService;
+        _overtimeBalanceRefreshService = overtimeBalanceRefreshService;
     }
 
     [HttpPost("test-run")]
@@ -169,6 +172,20 @@ public sealed class SyncController : ControllerBase
     public async Task<IActionResult> SyncNewTimeEntries(CancellationToken cancellationToken)
     {
         var result = await _timeEntrySyncService.SyncNewTimeEntriesAsync("manual-api", cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("overtime-balance/refresh")]
+    public async Task<IActionResult> RefreshOvertimeBalanceChanged(CancellationToken cancellationToken)
+    {
+        var result = await _overtimeBalanceRefreshService.RefreshChangedEmployeesAsync("manual-api", cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("overtime-balance/refresh-all")]
+    public async Task<IActionResult> RefreshOvertimeBalanceAll(CancellationToken cancellationToken)
+    {
+        var result = await _overtimeBalanceRefreshService.RefreshAllAsync("manual-api", cancellationToken);
         return Ok(result);
     }
 

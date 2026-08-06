@@ -56,7 +56,9 @@ public sealed class PlanningDbContext : DbContext
     public DbSet<ResourcePlanSnapshotEntry> ResourcePlanSnapshotEntries => Set<ResourcePlanSnapshotEntry>();
     public DbSet<ProjectTeamMember> ProjectTeamMembers => Set<ProjectTeamMember>();
     public DbSet<OvertimeAdjustment> OvertimeAdjustments => Set<OvertimeAdjustment>();
-    public DbSet<VwOvertimeBalance> OvertimeBalanceDaily => Set<VwOvertimeBalance>();
+    public DbSet<OvertimeBalanceDaily> OvertimeBalanceDaily => Set<OvertimeBalanceDaily>();
+    public DbSet<OvertimeBalanceRefreshState> OvertimeBalanceRefreshStates => Set<OvertimeBalanceRefreshState>();
+    public DbSet<OvertimeBalanceComputedRow> OvertimeBalanceComputedRows => Set<OvertimeBalanceComputedRow>();
     public DbSet<ExtTimeEntry> TimeEntries => Set<ExtTimeEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -178,9 +180,8 @@ public sealed class PlanningDbContext : DbContext
             .HasForeignKey(x => x.ProjectMetadataId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<VwOvertimeBalance>()
-            .HasNoKey()
-            .ToView("vw_overtime_balance", "core");
+        modelBuilder.Entity<OvertimeBalanceDaily>().HasKey(x => new { x.EmployeeId, x.WorkDate });
+        modelBuilder.Entity<OvertimeBalanceComputedRow>().HasNoKey();
 
         modelBuilder.Entity<ExtTimeEntry>().HasKey(x => x.Number);
         modelBuilder.Entity<ExtTimeEntry>().Property(x => x.NumberOfHours).HasPrecision(9, 2);

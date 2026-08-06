@@ -266,6 +266,7 @@ builder.Services.AddScoped<IOutOfOfficeCalendarService, OutOfOfficeCalendarServi
 builder.Services.AddScoped<IOvertimeBalanceQueryService, OvertimeBalanceQueryService>();
 builder.Services.AddScoped<IOvertimeAdjustmentService, OvertimeAdjustmentService>();
 builder.Services.AddScoped<ITimeEntrySyncService, TimeEntrySyncService>();
+builder.Services.AddScoped<IOvertimeBalanceRefreshService, OvertimeBalanceRefreshService>();
 
 builder.Services.AddHttpClient<IPdfCaptureMailClient, PdfCaptureMailClient>(client =>
 {
