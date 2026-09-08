@@ -10,6 +10,7 @@ public interface IOfferService
         string? query = null,
         bool? deliveredToPq = null,
         string? dawaId = null,
+        bool excludeFjern = false,
         CancellationToken cancellationToken = default);
     Task<OfferDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<OfferDto> CreateAsync(

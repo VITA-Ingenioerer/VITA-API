@@ -44,6 +44,7 @@ public sealed class OfferService : IOfferService
         string? query = null,
         bool? deliveredToPq = null,
         string? dawaId = null,
+        bool excludeFjern = false,
         CancellationToken cancellationToken = default)
     {
         page = page < 1 ? 1 : page;
@@ -78,6 +79,15 @@ public sealed class OfferService : IOfferService
             // regardless of how differently their titles are worded.
             var normalizedDawaId = dawaId.Trim();
             dbQuery = dbQuery.Where(x => x.ProjectDawaId == normalizedDawaId);
+        }
+
+        // The frontend has sent this flag on every offer list request all along —
+        // it was just never implemented here, so withdrawn/removed offers were
+        // silently included everywhere despite the UI's own comment claiming
+        // otherwise.
+        if (excludeFjern)
+        {
+            dbQuery = dbQuery.Where(x => x.OfferStatusCode == null || x.OfferStatusCode != "Fjern");
         }
 
         dbQuery = dbQuery.OrderByDescending(x => x.CreatedAtUtc);

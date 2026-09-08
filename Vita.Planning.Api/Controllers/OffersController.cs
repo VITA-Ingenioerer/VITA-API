@@ -22,9 +22,10 @@ public sealed class OffersController : ControllerBase
         [FromQuery] string? query = null,
         [FromQuery] bool? deliveredToPq = null,
         [FromQuery] string? dawaId = null,
+        [FromQuery] bool excludeFjern = false,
         CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAllAsync(page, pageSize, query, deliveredToPq, dawaId, cancellationToken);
+        var result = await _service.GetAllAsync(page, pageSize, query, deliveredToPq, dawaId, excludeFjern, cancellationToken);
         return Ok(result);
     }
 

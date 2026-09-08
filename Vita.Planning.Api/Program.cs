@@ -204,6 +204,7 @@ builder.Services.AddScoped<IUserSyncService, UserSyncService>();
 builder.Services.AddScoped<ISyncRunService, SyncRunService>();
 builder.Services.AddScoped<IInternalPlanningCodeService, InternalPlanningCodeService>();
 builder.Services.AddScoped<IOfferService, OfferService>();
+builder.Services.AddScoped<ISalesAnalyticsService, SalesAnalyticsService>();
 builder.Services.AddScoped<IPlanningTargetService, PlanningTargetService>();
 builder.Services.AddScoped<IResourcePlanEntryService, ResourcePlanEntryService>();
 builder.Services.AddScoped<IResourcePlanService, ResourcePlanService>();
