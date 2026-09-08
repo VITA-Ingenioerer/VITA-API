@@ -19,9 +19,18 @@ public sealed class DawaService : IDawaService
         _httpClient = httpClient;
     }
 
+    // Queries adgangsadresser (access/building-level addresses), not adresser
+    // (unit-level, one entry per apartment/floor/door). A project or offer is
+    // about a building or site, never a specific unit inside it — searching
+    // adresser meant a multi-unit building could only ever be picked by first
+    // choosing one arbitrary apartment, with no way to select the building as
+    // a whole. adgangsadresser has exactly one entry per building/entrance,
+    // which is also what makes ProjectDawaId a reliable duplicate-detection
+    // key: two offers on different units of the same building now resolve to
+    // the same id instead of two different ones.
     public async Task<IReadOnlyList<DawaAddressSearchResultDto>> SearchAsync(string query, string? postalCode = null, string? regionCode = null, CancellationToken cancellationToken = default)
     {
-        var url = $"{BaseUrl}/adresser/autocomplete?q={Uri.EscapeDataString(query)}&per_side=20&fuzzy=";
+        var url = $"{BaseUrl}/adgangsadresser/autocomplete?q={Uri.EscapeDataString(query)}&per_side=20&fuzzy=";
 
         if (!string.IsNullOrWhiteSpace(postalCode))
             url += $"&postnr={Uri.EscapeDataString(postalCode.Trim())}";
@@ -32,7 +41,7 @@ public sealed class DawaService : IDawaService
         var items = await _httpClient.GetFromJsonAsync<List<DawaAutocompleteItem>>(url, cancellationToken);
 
         return items?
-            .Where(x => x.Adresse is not null)
+            .Where(x => x.Adgangsadresse is not null)
             .Select(x => Map(x))
             .ToList() ?? [];
     }
@@ -72,16 +81,10 @@ public sealed class DawaService : IDawaService
 
     private static DawaAddressSearchResultDto Map(DawaAutocompleteItem item)
     {
-        var a = item.Adresse!;
+        var a = item.Adgangsadresse!;
         var street = string.IsNullOrWhiteSpace(a.Husnr)
             ? a.Vejnavn ?? string.Empty
             : $"{a.Vejnavn} {a.Husnr}".Trim();
-
-        if (!string.IsNullOrWhiteSpace(a.Etage) || !string.IsNullOrWhiteSpace(a.Doer))
-        {
-            var suffix = string.Join(" ", new[] { a.Etage, a.Doer }.Where(s => !string.IsNullOrWhiteSpace(s)));
-            street = $"{street}, {suffix}";
-        }
 
         return new DawaAddressSearchResultDto
         {
@@ -127,11 +130,13 @@ public sealed class DawaService : IDawaService
         [JsonPropertyName("tekst")]
         public string Tekst { get; set; } = string.Empty;
 
-        [JsonPropertyName("adresse")]
-        public DawaAdresse? Adresse { get; set; }
+        [JsonPropertyName("adgangsadresse")]
+        public DawaAdgangsadresse? Adgangsadresse { get; set; }
     }
 
-    private sealed class DawaAdresse
+    // Building/entrance-level fields only — adgangsadresser has no etage/dør,
+    // since floor and door only exist at the individual-unit (adresse) level.
+    private sealed class DawaAdgangsadresse
     {
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
@@ -141,12 +146,6 @@ public sealed class DawaService : IDawaService
 
         [JsonPropertyName("husnr")]
         public string? Husnr { get; set; }
-
-        [JsonPropertyName("etage")]
-        public string? Etage { get; set; }
-
-        [JsonPropertyName("dør")]
-        public string? Doer { get; set; }
 
         [JsonPropertyName("postnr")]
         public string? Postnr { get; set; }
