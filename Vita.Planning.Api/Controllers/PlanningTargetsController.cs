@@ -16,9 +16,11 @@ public sealed class PlanningTargetsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<PlanningTargetDto>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<PlanningTargetDto>>> GetAll(
+        [FromQuery] bool? isActive = null,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAllAsync(cancellationToken);
+        var result = await _service.GetAllAsync(isActive, cancellationToken);
         return Ok(result);
     }
 

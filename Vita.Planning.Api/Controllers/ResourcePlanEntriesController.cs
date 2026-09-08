@@ -26,18 +26,35 @@ public sealed class ResourcePlanEntriesController : ControllerBase
         [FromQuery] int? planningTargetId,
         [FromQuery] int? resourcePlanId,
         [FromQuery] int? virtualResourceId,
+        [FromQuery] int[]? employeeIds,
+        [FromQuery] int[]? planningTargetIds,
         CancellationToken cancellationToken)
     {
         try
         {
             var result = await _service.GetAllAsync(
-                yearNumber, fromDate, toDate, employeeId, scenarioId, planningTargetId, resourcePlanId, virtualResourceId, cancellationToken);
+                yearNumber, fromDate, toDate, employeeId, scenarioId, planningTargetId, resourcePlanId, virtualResourceId,
+                employeeIds, planningTargetIds, cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    // Company-wide totals for the "total belastning" graph — see
+    // ResourcePlanEntrySummaryDto for why this is a separate, pre-summed shape
+    // rather than the same rows GetAll returns.
+    [HttpGet("summary")]
+    public async Task<ActionResult<IReadOnlyList<ResourcePlanEntrySummaryDto>>> GetSummary(
+        [FromQuery] int scenarioId,
+        [FromQuery] DateOnly fromDate,
+        [FromQuery] DateOnly toDate,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.GetSummaryAsync(scenarioId, fromDate, toDate, cancellationToken);
+        return Ok(result);
     }
 
     [HttpGet("{id:int}")]

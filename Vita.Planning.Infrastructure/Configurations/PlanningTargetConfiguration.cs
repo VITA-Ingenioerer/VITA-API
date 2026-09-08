@@ -60,5 +60,13 @@ public sealed class PlanningTargetConfiguration : IEntityTypeConfiguration<Plann
 
         builder.HasIndex(x => new { x.TargetType, x.Code })
             .IsUnique();
+
+        // Both columns are filtered on repeatedly today with no supporting index —
+        // IsActive by frontend catalog filters, ExtProjectNumber by the project↔target
+        // lookups in ProjectQueryService/ProjectMetadataService. Requires the matching
+        // CREATE INDEX in the hand-run SQL script — see
+        // Sql/2026-08-add-catalog-filter-indexes.sql.
+        builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => x.ExtProjectNumber);
     }
 }

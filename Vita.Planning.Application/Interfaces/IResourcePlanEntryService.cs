@@ -13,6 +13,14 @@ public interface IResourcePlanEntryService
         int? planningTargetId = null,
         int? resourcePlanId = null,
         int? virtualResourceId = null,
+        IReadOnlyList<int>? employeeIds = null,
+        IReadOnlyList<int>? planningTargetIds = null,
+        CancellationToken cancellationToken = default);
+    // Company-wide totals, pre-summed in SQL — see ResourcePlanEntrySummaryDto.
+    Task<IReadOnlyList<ResourcePlanEntrySummaryDto>> GetSummaryAsync(
+        int scenarioId,
+        DateOnly fromDate,
+        DateOnly toDate,
         CancellationToken cancellationToken = default);
     Task<ResourcePlanEntryDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<ResourcePlanEntryDto> CreateAsync(

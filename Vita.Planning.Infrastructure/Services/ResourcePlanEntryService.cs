@@ -100,10 +100,13 @@ public sealed class ResourcePlanEntryService : IResourcePlanEntryService
         int? planningTargetId = null,
         int? resourcePlanId = null,
         int? virtualResourceId = null,
+        IReadOnlyList<int>? employeeIds = null,
+        IReadOnlyList<int>? planningTargetIds = null,
         CancellationToken cancellationToken = default)
     {
         var hasNarrowingScope = employeeId.HasValue || scenarioId.HasValue || resourcePlanId.HasValue
-            || planningTargetId.HasValue || virtualResourceId.HasValue;
+            || planningTargetId.HasValue || virtualResourceId.HasValue || (employeeIds is { Count: > 0 })
+            || (planningTargetIds is { Count: > 0 });
 
         if (!hasNarrowingScope && fromDate.HasValue && toDate.HasValue
             && toDate.Value.DayNumber - fromDate.Value.DayNumber > MaxUnscopedDateRangeDays)
@@ -134,6 +137,12 @@ public sealed class ResourcePlanEntryService : IResourcePlanEntryService
             query = query.Where(x => x.ResourcePlan != null && x.ResourcePlan.EmployeeId == employeeId.Value);
         }
 
+        if (employeeIds is { Count: > 0 })
+        {
+            query = query.Where(x => x.ResourcePlan != null && x.ResourcePlan.EmployeeId != null
+                && employeeIds.Contains(x.ResourcePlan.EmployeeId.Value));
+        }
+
         if (virtualResourceId.HasValue)
         {
             query = query.Where(x => x.ResourcePlan != null && x.ResourcePlan.VirtualResourceId == virtualResourceId.Value);
@@ -147,6 +156,11 @@ public sealed class ResourcePlanEntryService : IResourcePlanEntryService
         if (planningTargetId.HasValue)
         {
             query = query.Where(x => x.PlanningTargetId == planningTargetId.Value);
+        }
+
+        if (planningTargetIds is { Count: > 0 })
+        {
+            query = query.Where(x => planningTargetIds.Contains(x.PlanningTargetId));
         }
 
         if (resourcePlanId.HasValue)
@@ -217,6 +231,33 @@ public sealed class ResourcePlanEntryService : IResourcePlanEntryService
                 ActivityName = activity?.Name
             };
         });
+    }
+
+    // Company-wide totals — summed in SQL (GROUP BY plan_date, planning_target_id)
+    // instead of returning every raw entry for the caller to sum. This is what an
+    // unscoped, multi-month, whole-scenario request should have been all along:
+    // measured at 152,614 rows / ~9-10s for the raw-entry version over a 6-month
+    // window across ~180 employees; this returns roughly (workdays) x (distinct
+    // targets used) rows instead — the category/weighting logic stays client-side,
+    // keyed off PlanningTargetId against the already-loaded planning-target catalog.
+    public async Task<IReadOnlyList<ResourcePlanEntrySummaryDto>> GetSummaryAsync(
+        int scenarioId,
+        DateOnly fromDate,
+        DateOnly toDate,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.ResourcePlanEntries
+            .AsNoTracking()
+            .Where(x => x.ResourcePlan != null && x.ResourcePlan.ScenarioId == scenarioId)
+            .Where(x => x.PlanDate >= fromDate && x.PlanDate <= toDate)
+            .GroupBy(x => new { x.PlanDate, x.PlanningTargetId })
+            .Select(g => new ResourcePlanEntrySummaryDto
+            {
+                PlanDate = g.Key.PlanDate,
+                PlanningTargetId = g.Key.PlanningTargetId,
+                Hours = g.Sum(x => x.Hours)
+            })
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<ResourcePlanEntryDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)

@@ -203,6 +203,19 @@ public sealed class OfferService : IOfferService
                 throw new InvalidOperationException($"OfferStatus with id {request.OfferStatusId.Value} does not exist.");
         }
 
+        // core.offers has an FK on converted_to_project_number -> ext.projects. Without this check
+        // a number that hasn't been synced from e-conomic yet fails as a DbUpdateException at
+        // SaveChanges (a 500) instead of a straight answer about what's wrong. The conversion flow
+        // inserts the ext.projects mirror row itself, so it never lands here.
+        if (request.ConvertedToProjectNumber.HasValue)
+        {
+            var convertedProjectExists = await _dbContext.Projects
+                .AnyAsync(x => x.ProjectNumber == request.ConvertedToProjectNumber.Value, cancellationToken);
+            if (!convertedProjectExists)
+                throw new InvalidOperationException(
+                    $"Project {request.ConvertedToProjectNumber.Value} does not exist and cannot be linked to this offer yet. It may appear after the next ERP sync.");
+        }
+
         await ValidateLookupIdsAsync(request.CompetitionFormId, request.EnterpriseFormId,
             request.ConsultantFormId, request.ProjectTypeId, request.ProjectRoleId,
             request.ComplexityLevelId, request.EngineeringDisciplineId, request.SegmentIds, cancellationToken);
@@ -316,6 +329,19 @@ public sealed class OfferService : IOfferService
                 .AnyAsync(x => x.OfferStatusId == request.OfferStatusId.Value && x.IsActive, cancellationToken);
             if (!statusExists)
                 throw new InvalidOperationException($"OfferStatus with id {request.OfferStatusId.Value} does not exist.");
+        }
+
+        // core.offers has an FK on converted_to_project_number -> ext.projects. Without this check
+        // a number that hasn't been synced from e-conomic yet fails as a DbUpdateException at
+        // SaveChanges (a 500) instead of a straight answer about what's wrong. The conversion flow
+        // inserts the ext.projects mirror row itself, so it never lands here.
+        if (request.ConvertedToProjectNumber.HasValue)
+        {
+            var convertedProjectExists = await _dbContext.Projects
+                .AnyAsync(x => x.ProjectNumber == request.ConvertedToProjectNumber.Value, cancellationToken);
+            if (!convertedProjectExists)
+                throw new InvalidOperationException(
+                    $"Project {request.ConvertedToProjectNumber.Value} does not exist and cannot be linked to this offer yet. It may appear after the next ERP sync.");
         }
 
         await ValidateLookupIdsAsync(request.CompetitionFormId, request.EnterpriseFormId,
@@ -458,6 +484,30 @@ public sealed class OfferService : IOfferService
             .Where(x => x.IsActive)
             .ToListAsync(cancellationToken);
 
+        // core.offers has an FK on converted_to_project_number -> ext.projects, and the sheet's
+        // "Evt. sagsnr., hvis sagen realiseres" column names projects that may not have synced
+        // from e-conomic yet. Checking here keeps one unknown number from failing the entire
+        // batch at SaveChanges with a constraint error that names no row.
+        var knownProjectNumbers = (await _dbContext.Projects
+                .Select(x => x.ProjectNumber)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+
+        // "Ansvarlig person" holds initials matching the local part of a user's UPN
+        // (mkj@vitaing.dk -> MKJ). The column also carries free text ("MP/SVOP", "TMP dummy")
+        // that names nobody; storing that as a responsible person is worse than storing nothing.
+        var knownInitials = (await _dbContext.Users
+                .Where(x => x.IsActive)
+                .Select(x => x.UserPrincipalName)
+                .ToListAsync(cancellationToken))
+            .Select(upn => upn.Split('@')[0].Trim())
+            .Where(x => x.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var partnerRoleTypeIdsByCode = await _dbContext.PlanningPartnerRoleTypes
+            .Where(x => x.IsActive)
+            .ToDictionaryAsync(x => x.Code, x => x.PlanningPartnerRoleTypeId, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
         var offerStatusLookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in offerStatuses)
         {
@@ -469,14 +519,22 @@ public sealed class OfferService : IOfferService
         var createdOfferNumbers = new List<string>();
         var updatedOfferNumbers = new List<string>();
 
+        // Customers and partner companies are resolved by name against our own core.customer list
+        // (not the e-conomic one) and created when missing. Collected up front so ~1300 distinct
+        // company names cost one insert batch instead of a round trip per row.
+        var customersByName = (await _dbContext.Customers
+                .Select(x => new { x.CustomerId, x.Name })
+                .ToListAsync(cancellationToken))
+            .GroupBy(x => x.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().CustomerId, StringComparer.OrdinalIgnoreCase);
+
+        var parsedRows = new List<(int RowNumber, string OfferNumber, ImportedOfferRow Model)>();
         foreach (var row in rows)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var rowNumber = row.RowNumber();
-            var offerNumber = NormalizeOfferNumber(GetCellString(row, headers, "Tilbudsnr."));
-
-            if (string.IsNullOrWhiteSpace(offerNumber))
+            var parsedOfferNumber = NormalizeOfferNumber(GetCellString(row, headers, "Tilbudsnr."));
+            if (string.IsNullOrWhiteSpace(parsedOfferNumber))
             {
                 result.SkippedCount++;
                 continue;
@@ -484,12 +542,85 @@ public sealed class OfferService : IOfferService
 
             try
             {
-                var importModel = BuildImportModel(row, headers, offerNumber);
+                parsedRows.Add((row.RowNumber(), parsedOfferNumber, BuildImportModel(row, headers, parsedOfferNumber)));
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or FormatException)
+            {
+                result.Errors = result.Errors.Append(new ImportOfferErrorDto
+                {
+                    RowNumber = row.RowNumber(),
+                    OfferNumber = parsedOfferNumber,
+                    Message = ex.Message
+                }).ToList();
+                result.SkippedCount++;
+            }
+        }
+
+        var newCompanyNames = parsedRows
+            .SelectMany(x => x.Model.PartnerCompanyNamesByRoleCode.Values.Append(x.Model.CustomerName))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!.Trim())
+            .Where(name => !customersByName.ContainsKey(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (newCompanyNames.Count > 0)
+        {
+            var newCustomers = newCompanyNames
+                .Select(name => new Customer
+                {
+                    Name = name,
+                    CustomerSource = "Local",
+                    CustomerStatus = "Active",
+                    CountryCode = "DK",
+                    CreatedBy = actor,
+                    CreatedAtUtc = DateTime.UtcNow
+                })
+                .ToList();
+
+            _dbContext.Customers.AddRange(newCustomers);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            foreach (var customer in newCustomers)
+                customersByName[customer.Name] = customer.CustomerId;
+        }
+
+        foreach (var (rowNumber, offerNumber, importModel) in parsedRows)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
 
                 if (importModel.OfferStatusName != null &&
                     offerStatusLookup.TryGetValue(importModel.OfferStatusName, out var resolvedStatusId))
                 {
                     importModel.OfferStatusId = resolvedStatusId;
+                }
+
+                if (importModel.ResponsibleInitials is { } rawInitials
+                    && knownInitials.Count > 0
+                    && !knownInitials.Contains(rawInitials.Trim()))
+                {
+                    importModel.ResponsibleInitials = null;
+                }
+
+                if (!string.IsNullOrWhiteSpace(importModel.CustomerName)
+                    && customersByName.TryGetValue(importModel.CustomerName.Trim(), out var resolvedCustomerId))
+                {
+                    importModel.CustomerId = resolvedCustomerId;
+                }
+
+                if (importModel.ConvertedToProjectNumber is { } convertedProjectNumber
+                    && !knownProjectNumbers.Contains(convertedProjectNumber))
+                {
+                    importModel.ConvertedToProjectNumber = null;
+                    result.Errors = result.Errors.Append(new ImportOfferErrorDto
+                    {
+                        RowNumber = rowNumber,
+                        OfferNumber = offerNumber,
+                        Message = $"Project {convertedProjectNumber} is not in the project catalogue, so the offer was imported without the link to it. It may appear after the next ERP sync."
+                    }).ToList();
                 }
 
                 if (existingOffers.TryGetValue(offerNumber, out var existingOffer))
@@ -526,6 +657,10 @@ public sealed class OfferService : IOfferService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await ImportPartnerRolesAsync(
+            parsedRows, existingOffers, customersByName, partnerRoleTypeIdsByCode, actor, cancellationToken);
+
         await _changeLog.RecordChangeAsync(new RecordEntityChangeRequest
         {
             EventType = "OffersImported",
@@ -1115,6 +1250,126 @@ public sealed class OfferService : IOfferService
                 .Select(x => x.Name).FirstOrDefaultAsync(ct);
     }
 
+    // Partner companies hang off the offer's PlanningTarget rather than the offer itself, so this
+    // runs after the offers have been saved and have ids. Everything is batched: one query for the
+    // existing targets, one for the existing roles, and a single save at the end.
+    private async Task ImportPartnerRolesAsync(
+        List<(int RowNumber, string OfferNumber, ImportedOfferRow Model)> parsedRows,
+        Dictionary<string, Offer> offersByNumber,
+        Dictionary<string, int> customersByName,
+        IReadOnlyDictionary<string, int> partnerRoleTypeIdsByCode,
+        string actor,
+        CancellationToken cancellationToken)
+    {
+        var rowsWithPartners = parsedRows
+            .Where(x => x.Model.PartnerCompanyNamesByRoleCode.Count > 0)
+            .ToList();
+
+        if (rowsWithPartners.Count == 0 || partnerRoleTypeIdsByCode.Count == 0)
+            return;
+
+        var offerIds = rowsWithPartners
+            .Select(x => offersByNumber.TryGetValue(x.OfferNumber, out var offer) ? offer.OfferId : 0)
+            .Where(id => id != 0)
+            .ToHashSet();
+
+        var targetIdsByOfferId = (await _dbContext.PlanningTargets
+                .Where(pt => pt.OfferId != null && offerIds.Contains(pt.OfferId.Value))
+                .ToListAsync(cancellationToken))
+            .GroupBy(pt => pt.OfferId!.Value)
+            .ToDictionary(g => g.Key, g => g.First().PlanningTargetId);
+
+        var newTargets = new List<PlanningTarget>();
+        foreach (var (_, offerNumber, _) in rowsWithPartners)
+        {
+            if (!offersByNumber.TryGetValue(offerNumber, out var offer)
+                || offer.OfferId == 0
+                || targetIdsByOfferId.ContainsKey(offer.OfferId)
+                || newTargets.Any(t => t.OfferId == offer.OfferId))
+            {
+                continue;
+            }
+
+            newTargets.Add(new PlanningTarget
+            {
+                Code = offer.OfferNumber,
+                Name = offer.Title,
+                TargetType = "Offer",
+                OfferId = offer.OfferId,
+                IsActive = true,
+                IsPlannable = true,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        if (newTargets.Count > 0)
+        {
+            _dbContext.PlanningTargets.AddRange(newTargets);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            foreach (var target in newTargets)
+                targetIdsByOfferId[target.OfferId!.Value] = target.PlanningTargetId;
+        }
+
+        var targetIds = targetIdsByOfferId.Values.ToHashSet();
+
+        // Not unique per (target, role): a target can carry several companies in the same role —
+        // two "Øvrigt team" entries, say — so this groups rather than keying one row per pair.
+        var existingRoles = (await _dbContext.CustomerPartnerRoles
+                .Where(r => targetIds.Contains(r.PlanningTargetId))
+                .ToListAsync(cancellationToken))
+            .GroupBy(r => (r.PlanningTargetId, r.PlanningPartnerRoleTypeId))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var (_, offerNumber, model) in rowsWithPartners)
+        {
+            if (!offersByNumber.TryGetValue(offerNumber, out var offer)
+                || !targetIdsByOfferId.TryGetValue(offer.OfferId, out var planningTargetId))
+            {
+                continue;
+            }
+
+            foreach (var (roleCode, companyName) in model.PartnerCompanyNamesByRoleCode)
+            {
+                if (!partnerRoleTypeIdsByCode.TryGetValue(roleCode, out var roleTypeId)
+                    || !customersByName.TryGetValue(companyName, out var customerId))
+                {
+                    continue;
+                }
+
+                if (existingRoles.TryGetValue((planningTargetId, roleTypeId), out var rolesForType))
+                {
+                    // Already recorded on one of the rows for this role — nothing to do. Otherwise
+                    // point the first one at the company the sheet names, leaving any additional
+                    // rows for that role untouched.
+                    if (rolesForType.Any(r => r.CustomerId == customerId))
+                        continue;
+
+                    var roleToUpdate = rolesForType[0];
+                    roleToUpdate.CustomerId = customerId;
+                    roleToUpdate.UpdatedBy = actor;
+                    roleToUpdate.UpdatedAtUtc = DateTime.UtcNow;
+                    continue;
+                }
+
+                var role = new CustomerPartnerRole
+                {
+                    PlanningTargetId = planningTargetId,
+                    CustomerId = customerId,
+                    PlanningPartnerRoleTypeId = roleTypeId,
+                    IsPrimary = false,
+                    CreatedBy = actor,
+                    CreatedAtUtc = DateTime.UtcNow
+                };
+
+                _dbContext.CustomerPartnerRoles.Add(role);
+                existingRoles[(planningTargetId, roleTypeId)] = [role];
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<int> FindOrCreatePlanningTargetForOfferAsync(
         int offerId,
         CancellationToken cancellationToken)
@@ -1360,7 +1615,7 @@ public sealed class OfferService : IOfferService
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-        return new ImportedOfferRow
+        var model = new ImportedOfferRow
         {
             Title = title,
             ResponsibleInitials = GetCellString(row, headers, "Ansvarlig person"),
@@ -1376,6 +1631,10 @@ public sealed class OfferService : IOfferService
             HasRelation = ParseBoolean(GetCellString(row, headers, "Relation")),
             IsActive = ParseIsActive(GetCellString(row, headers, "Status")),
             OfferStatusName = statusText,
+            // Excel stores this as a fraction with a percent format, so the formatted string is
+            // "50%" and ParseNullableDecimal strips the sign — giving 50, not 0.5.
+            ProbabilityPercent = ParseNullableDecimal(GetCellString(row, headers, "Sandsynlighed")),
+            CustomerName = GetCellString(row, headers, "Kunde") ?? GetCellString(row, headers, "Kundenavn"),
             ConvertedToProjectNumber = ParseNullableInt(GetCellString(row, headers, "Evt. sagsnr., hvis sagen realiseres")),
             ConvertedAtUtc = ParseNullableDateTime(GetCellString(row, headers, "Dato for tabt/vundet/aftale indgået")),
             ProjectType = GetCellString(row, headers, "Projekttype"),
@@ -1384,7 +1643,25 @@ public sealed class OfferService : IOfferService
             DeliveredToPq = ParseNullableBoolean(GetCellString(row, headers, "Leveret til PQ")),
             AddToPqCompetition = ParseBoolean(GetCellString(row, headers, "Er i resplan?"))
         };
+
+        foreach (var (header, roleCode) in PartnerColumnsByRoleCode)
+        {
+            var companyName = GetCellString(row, headers, header);
+            if (!string.IsNullOrWhiteSpace(companyName))
+                model.PartnerCompanyNamesByRoleCode[roleCode] = companyName.Trim();
+        }
+
+        return model;
     }
+
+    // Sheet column -> planning_partner_role_type.code
+    private static readonly (string Header, string RoleCode)[] PartnerColumnsByRoleCode =
+    [
+        ("Bygherre", "Bygherre"),
+        ("Totalentreprenør", "Totalentreprenoer"),
+        ("Arkitekt", "Arkitekt"),
+        ("Øvrigt team", "OevrigSamarbejdspartner")
+    ];
 
     private static void ApplyImport(Offer entity, ImportedOfferRow import, bool isCreate, string actor)
     {
@@ -1409,10 +1686,25 @@ public sealed class OfferService : IOfferService
         entity.PqSubmissionDate = import.PqSubmissionDate;
         entity.DeliveredToPq = import.DeliveredToPq;
         entity.HasRelation = import.HasRelation;
-        entity.ConvertedToProjectNumber = import.ConvertedToProjectNumber;
-        entity.ConvertedAtUtc = import.ConvertedAtUtc;
+        // Metadata on a converted offer updates like any other row — only the conversion link
+        // itself is left alone. It is written once, by the conversion, alongside the ext.projects
+        // row that satisfies the FK; a later sheet must not blank it (the column is empty for
+        // every unrealised offer) or point it at a different project.
+        if (import.ConvertedToProjectNumber.HasValue && !entity.ConvertedToProjectNumber.HasValue)
+        {
+            entity.ConvertedToProjectNumber = import.ConvertedToProjectNumber;
+            entity.ConvertedAtUtc = import.ConvertedAtUtc;
+        }
         entity.OfferStatusId = import.OfferStatusId;
         entity.IsActive = import.IsActive;
+
+        // No percentage stated means certain; an explicit 0% is a real value (a lost case).
+        var probability = import.ProbabilityPercent ?? 100m;
+        entity.ProbabilityPercent = probability;
+        entity.IsProbableCase = probability < 100m;
+
+        if (import.CustomerId.HasValue)
+            entity.CustomerId = import.CustomerId;
 
         if (isCreate)
             entity.CreatedBy = actor;
@@ -1616,5 +1908,9 @@ public sealed class OfferService : IOfferService
         public int? OfferStatusId { get; set; }
         public string? OfferStatusName { get; set; }
         public bool IsActive { get; set; }
+        public decimal? ProbabilityPercent { get; set; }
+        public string? CustomerName { get; set; }
+        public int? CustomerId { get; set; }
+        public Dictionary<string, string> PartnerCompanyNamesByRoleCode { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }

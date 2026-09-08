@@ -16,10 +16,16 @@ public sealed class PlanningTargetService : IPlanningTargetService
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<PlanningTargetDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PlanningTargetDto>> GetAllAsync(bool? isActive = null, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.PlanningTargets
-            .AsNoTracking()
+        var query = _dbContext.PlanningTargets.AsNoTracking();
+
+        // Optional and unset by default — omitting it keeps every existing caller's
+        // behavior (the full, unfiltered catalog) unchanged.
+        if (isActive.HasValue)
+            query = query.Where(x => x.IsActive == isActive.Value);
+
+        return await query
             .OrderBy(x => x.Code)
             .Select(MapToDtoExpression())
             .ToListAsync(cancellationToken);

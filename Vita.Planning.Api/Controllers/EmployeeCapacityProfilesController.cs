@@ -18,9 +18,12 @@ public sealed class EmployeeCapacityProfilesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<EmployeeCapacityProfileDto>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<EmployeeCapacityProfileDto>>> GetAll(
+        [FromQuery] int? employeeId = null,
+        [FromQuery] bool? isActive = null,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAllAsync(cancellationToken);
+        var result = await _service.GetAllAsync(employeeId, isActive, cancellationToken);
         return Ok(result);
     }
 

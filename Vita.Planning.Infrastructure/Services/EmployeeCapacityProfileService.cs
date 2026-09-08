@@ -16,10 +16,20 @@ public sealed class EmployeeCapacityProfileService : IEmployeeCapacityProfileSer
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<EmployeeCapacityProfileDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EmployeeCapacityProfileDto>> GetAllAsync(int? employeeId = null, bool? isActive = null, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.EmployeeCapacityProfiles
-            .AsNoTracking()
+        var query = _dbContext.EmployeeCapacityProfiles.AsNoTracking();
+
+        // Both optional and unset by default — omitting them keeps every existing caller's
+        // behavior (the full, unfiltered catalog) unchanged. The frontend has been sending
+        // these two params for a while; the backend just wasn't honoring them yet.
+        if (employeeId.HasValue)
+            query = query.Where(x => x.EmployeeId == employeeId.Value);
+
+        if (isActive.HasValue)
+            query = query.Where(x => x.IsActive == isActive.Value);
+
+        return await query
             .OrderBy(x => x.EmployeeId)
             .ThenBy(x => x.EffectiveFrom)
             .Select(MapToDtoExpression())

@@ -27,5 +27,11 @@ public sealed class EmployeeCapacityProfileConfiguration : IEntityTypeConfigurat
         builder.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(200);
         builder.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
         builder.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc");
+
+        // Filtered on every create/update overlap check today (RequireNoOverlappingActivePeriodAsync)
+        // with no supporting index — this already costs something now, not just at scale.
+        // Requires the matching CREATE INDEX in the hand-run SQL script — see
+        // Sql/2026-08-add-catalog-filter-indexes.sql.
+        builder.HasIndex(x => x.EmployeeId);
     }
 }

@@ -76,6 +76,12 @@ public sealed class PlanningDbContext : DbContext
         modelBuilder.Entity<ExtProject>().Property(x => x.SalesPrice).HasPrecision(18, 2);
         modelBuilder.Entity<ExtProject>().Property(x => x.FixedPrice).HasPrecision(18, 2);
         modelBuilder.Entity<ExtProject>().Property(x => x.InvoicedTotal).HasPrecision(18, 2);
+        // Frontends filter the project catalog by these flags (e.g. hide closed/barred
+        // projects from pickers); without an index, that's a full table scan as the
+        // catalog grows. Requires the matching CREATE INDEX in the hand-run SQL script —
+        // see Sql/2026-08-add-catalog-filter-indexes.sql.
+        modelBuilder.Entity<ExtProject>().HasIndex(x => x.IsClosed);
+        modelBuilder.Entity<ExtProject>().HasIndex(x => x.IsBarred);
         modelBuilder.Entity<ExtProjectCustomer>().HasKey(x => x.CustomerNumber);
         modelBuilder.Entity<ExtProjectStatus>().HasKey(x => x.StatusNumber);
         modelBuilder.Entity<ExtProjectEmployeeGroup>().HasKey(x => x.EmployeeGroupNumber);
@@ -95,6 +101,11 @@ public sealed class PlanningDbContext : DbContext
         modelBuilder.Entity<ExtUser>()
             .HasIndex(x => x.UserPrincipalName)
             .IsUnique();
+        // UsersController resolves each user's manager via a correlated subquery on this
+        // column for every row — unindexed, that's a per-row scan as the roster grows.
+        // Requires the matching CREATE INDEX in the hand-run SQL script — see
+        // Sql/2026-08-add-catalog-filter-indexes.sql.
+        modelBuilder.Entity<ExtUser>().HasIndex(x => x.ManagerEmployeeId);
 
         modelBuilder.Entity<OpsSyncError>()
             .HasOne(x => x.SyncRun)

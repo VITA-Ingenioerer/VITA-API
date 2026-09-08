@@ -14,7 +14,7 @@ public sealed class ProjectQueryService : IProjectQueryService
         _db = db;
     }
 
-    public async Task<PagedResultDto<ProjectListItemDto>> GetProjectsAsync(int page, int pageSize, string? query = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResultDto<ProjectListItemDto>> GetProjectsAsync(int page, int pageSize, string? query = null, bool? isClosed = null, bool? isBarred = null, CancellationToken cancellationToken = default)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize < 1 ? 100 : Math.Min(pageSize, 500);
@@ -29,6 +29,14 @@ public sealed class ProjectQueryService : IProjectQueryService
             else
                 dbQuery = dbQuery.Where(p => p.ProjectName.Contains(q));
         }
+
+        // Both optional and unset by default — omitting them keeps every existing caller's
+        // behavior (the full, unfiltered catalog) unchanged.
+        if (isClosed.HasValue)
+            dbQuery = dbQuery.Where(p => p.IsClosed == isClosed.Value);
+
+        if (isBarred.HasValue)
+            dbQuery = dbQuery.Where(p => p.IsBarred == isBarred.Value);
 
         var totalCount = await dbQuery.CountAsync(cancellationToken);
 
