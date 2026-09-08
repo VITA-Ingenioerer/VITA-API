@@ -4,7 +4,13 @@ namespace Vita.Planning.Application.Interfaces;
 
 public interface IOfferService
 {
-    Task<PagedResultDto<OfferDto>> GetAllAsync(int page = 1, int pageSize = 100, string? query = null, CancellationToken cancellationToken = default);
+    Task<PagedResultDto<OfferDto>> GetAllAsync(
+        int page = 1,
+        int pageSize = 100,
+        string? query = null,
+        bool? deliveredToPq = null,
+        string? dawaId = null,
+        CancellationToken cancellationToken = default);
     Task<OfferDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<OfferDto> CreateAsync(
         CreateOfferRequest request,

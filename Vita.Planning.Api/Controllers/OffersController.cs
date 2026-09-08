@@ -20,9 +20,11 @@ public sealed class OffersController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 100,
         [FromQuery] string? query = null,
+        [FromQuery] bool? deliveredToPq = null,
+        [FromQuery] string? dawaId = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAllAsync(page, pageSize, query, cancellationToken);
+        var result = await _service.GetAllAsync(page, pageSize, query, deliveredToPq, dawaId, cancellationToken);
         return Ok(result);
     }
 

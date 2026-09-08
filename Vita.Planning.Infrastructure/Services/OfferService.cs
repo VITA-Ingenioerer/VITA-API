@@ -38,7 +38,13 @@ public sealed class OfferService : IOfferService
         _workspaceProvisioningClient = workspaceProvisioningClient;
     }
 
-    public async Task<PagedResultDto<OfferDto>> GetAllAsync(int page = 1, int pageSize = 100, string? query = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResultDto<OfferDto>> GetAllAsync(
+        int page = 1,
+        int pageSize = 100,
+        string? query = null,
+        bool? deliveredToPq = null,
+        string? dawaId = null,
+        CancellationToken cancellationToken = default)
     {
         page = page < 1 ? 1 : page;
         pageSize = Math.Clamp(pageSize, 1, 500);
@@ -47,8 +53,31 @@ public sealed class OfferService : IOfferService
 
         if (!string.IsNullOrWhiteSpace(query))
         {
+            // Beyond title/number: customer, address and responsible initials — the
+            // fields someone actually remembers when checking "has this already been
+            // created?", which title/number alone can't answer.
             var q = query.Trim();
-            dbQuery = dbQuery.Where(x => x.Title.Contains(q) || x.OfferNumber.Contains(q));
+            dbQuery = dbQuery.Where(x =>
+                x.Title.Contains(q) ||
+                x.OfferNumber.Contains(q) ||
+                (x.CustomerName != null && x.CustomerName.Contains(q)) ||
+                (x.ProjectStreetAddress != null && x.ProjectStreetAddress.Contains(q)) ||
+                (x.ProjectCity != null && x.ProjectCity.Contains(q)) ||
+                (x.ResponsibleInitials != null && x.ResponsibleInitials.Contains(q)));
+        }
+
+        if (deliveredToPq.HasValue)
+        {
+            dbQuery = dbQuery.Where(x => x.DeliveredToPq == deliveredToPq.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(dawaId))
+        {
+            // Exact match on the building-level DAWA id — the strongest duplicate
+            // signal there is: two offers resolving to the same physical building,
+            // regardless of how differently their titles are worded.
+            var normalizedDawaId = dawaId.Trim();
+            dbQuery = dbQuery.Where(x => x.ProjectDawaId == normalizedDawaId);
         }
 
         dbQuery = dbQuery.OrderByDescending(x => x.CreatedAtUtc);

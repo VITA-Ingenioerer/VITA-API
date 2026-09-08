@@ -35,9 +35,10 @@ public sealed class ProjectsController : ControllerBase
         [FromQuery] string? query = null,
         [FromQuery] bool? isClosed = null,
         [FromQuery] bool? isBarred = null,
+        [FromQuery] string? dawaId = null,
         CancellationToken cancellationToken = default)
     {
-        var projects = await _queryService.GetProjectsAsync(page, pageSize, query, isClosed, isBarred, cancellationToken);
+        var projects = await _queryService.GetProjectsAsync(page, pageSize, query, isClosed, isBarred, dawaId, cancellationToken);
         return Ok(projects);
     }
 

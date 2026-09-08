@@ -14,33 +14,22 @@ public sealed class ProjectQueryService : IProjectQueryService
         _db = db;
     }
 
-    public async Task<PagedResultDto<ProjectListItemDto>> GetProjectsAsync(int page, int pageSize, string? query = null, bool? isClosed = null, bool? isBarred = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResultDto<ProjectListItemDto>> GetProjectsAsync(
+        int page,
+        int pageSize,
+        string? query = null,
+        bool? isClosed = null,
+        bool? isBarred = null,
+        string? dawaId = null,
+        CancellationToken cancellationToken = default)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize < 1 ? 100 : Math.Min(pageSize, 500);
 
-        var dbQuery = _db.Projects.AsNoTracking();
-
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            var q = query.Trim();
-            if (int.TryParse(q, out var projectNumber))
-                dbQuery = dbQuery.Where(p => p.ProjectName.Contains(q) || p.ProjectNumber == projectNumber);
-            else
-                dbQuery = dbQuery.Where(p => p.ProjectName.Contains(q));
-        }
-
-        // Both optional and unset by default — omitting them keeps every existing caller's
-        // behavior (the full, unfiltered catalog) unchanged.
-        if (isClosed.HasValue)
-            dbQuery = dbQuery.Where(p => p.IsClosed == isClosed.Value);
-
-        if (isBarred.HasValue)
-            dbQuery = dbQuery.Where(p => p.IsBarred == isBarred.Value);
-
-        var totalCount = await dbQuery.CountAsync(cancellationToken);
-
-        var items = await dbQuery
+        // Metadata joined before filtering (not after, as it used to be) — address
+        // and the DAWA id only live on project_metadata, so matching on them has to
+        // happen before Skip/Take, not just when shaping the page for display.
+        var dbQuery = _db.Projects.AsNoTracking()
             .GroupJoin(
                 _db.ProjectMetadata.AsNoTracking(),
                 p => p.ProjectNumber,
@@ -48,7 +37,36 @@ public sealed class ProjectQueryService : IProjectQueryService
                 (p, metas) => new { p, metas })
             .SelectMany(
                 x => x.metas.DefaultIfEmpty(),
-                (x, meta) => new { x.p, meta })
+                (x, meta) => new { x.p, meta });
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var q = query.Trim();
+            var matchesNumber = int.TryParse(q, out var projectNumber);
+            dbQuery = dbQuery.Where(x =>
+                x.p.ProjectName.Contains(q) ||
+                (matchesNumber && x.p.ProjectNumber == projectNumber) ||
+                (x.meta != null && x.meta.ProjectStreetAddress != null && x.meta.ProjectStreetAddress.Contains(q)) ||
+                (x.meta != null && x.meta.ProjectCity != null && x.meta.ProjectCity.Contains(q)));
+        }
+
+        // Both optional and unset by default — omitting them keeps every existing caller's
+        // behavior (the full, unfiltered catalog) unchanged.
+        if (isClosed.HasValue)
+            dbQuery = dbQuery.Where(x => x.p.IsClosed == isClosed.Value);
+
+        if (isBarred.HasValue)
+            dbQuery = dbQuery.Where(x => x.p.IsBarred == isBarred.Value);
+
+        if (!string.IsNullOrWhiteSpace(dawaId))
+        {
+            var normalizedDawaId = dawaId.Trim();
+            dbQuery = dbQuery.Where(x => x.meta != null && x.meta.ProjectDawaId == normalizedDawaId);
+        }
+
+        var totalCount = await dbQuery.CountAsync(cancellationToken);
+
+        var items = await dbQuery
             .OrderByDescending(x => x.meta == null ? (DateTime?)null : x.meta.CreatedAtUtc)
             .ThenByDescending(x => x.p.ProjectNumber)
             .Skip((page - 1) * pageSize)
