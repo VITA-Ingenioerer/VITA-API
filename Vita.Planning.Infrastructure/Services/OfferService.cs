@@ -15,6 +15,11 @@ public sealed class OfferService : IOfferService
         @"^Q\s*(?<quarter>[1-4])\s*[-,./_ ]\s*(?<year>\d{4})$|^(?<year2>\d{4})\s*[-,./_ ]\s*Q\s*(?<quarter2>[1-4])$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+    // Planning is done in Danish working days, so "the conversion date" is the Danish calendar
+    // date — using the UTC date would pull in an extra past day for late-evening conversions.
+    private static readonly TimeZoneInfo DanishTimeZone =
+        TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time");
+
     private readonly PlanningDbContext _dbContext;
     private readonly IEntityChangeLogService _changeLog;
     private readonly IResourcePlanEntryHistoryService _historyService;
@@ -747,6 +752,24 @@ public sealed class OfferService : IOfferService
         if (request.SubProjectNames.Count > 99)
             throw new InvalidOperationException("A main project can have at most 99 sub-projects.");
 
+        // Validate the migration destination before anything is created in e-conomic, so a bad
+        // request fails cleanly instead of leaving half-created projects behind.
+        if (request.MigrateToSubProjectIndex is { } requestedIndex
+            && (requestedIndex < 0 || requestedIndex >= request.SubProjectNames.Count))
+            throw new InvalidOperationException(
+                $"MigrateToSubProjectIndex {requestedIndex} is out of range; " +
+                $"{request.SubProjectNames.Count} sub-project name(s) were supplied.");
+
+        if (request.MigrateToProjectNumber is { } explicitTarget)
+        {
+            var targetExists = await _dbContext.Projects
+                .AnyAsync(p => p.ProjectNumber == explicitTarget, cancellationToken);
+            if (!targetExists)
+                throw new InvalidOperationException(
+                    $"Project {explicitTarget} does not exist and cannot receive migrated hours. " +
+                    "It may appear after the next ERP sync.");
+        }
+
         if (!offer.CustomerId.HasValue)
             throw new InvalidOperationException(
                 $"Offer '{offer.OfferNumber}' has no customer. Set a customer before converting.");
@@ -776,32 +799,7 @@ public sealed class OfferService : IOfferService
             responsibleEmployeeNumber: request.ResponsibleEmployeeNumber,
             cancellationToken: cancellationToken);
 
-        // Insert the sync mirror row immediately so the FK on core.offers is satisfied right away
-        // instead of waiting for the next scheduled sync. GET the project back from e-conomic
-        // rather than guessing at its fields from our own create request.
-        var stubExists = await _dbContext.Projects
-            .AnyAsync(p => p.ProjectNumber == mainProjectNumber, cancellationToken);
-        if (!stubExists)
-        {
-            var source = await _projectSourceClient.GetProjectByNumberAsync(mainProjectNumber, cancellationToken);
-
-            if (source is not null)
-            {
-                _dbContext.Projects.Add(ExtProjectMapper.ToNewEntity(source));
-            }
-            else
-            {
-                _dbContext.Projects.Add(new ExtProject
-                {
-                    ProjectNumber = mainProjectNumber,
-                    ProjectName = projectName,
-                    IsMainProject = true,
-                    SourceLastSyncedAt = DateTime.UtcNow
-                });
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
+        await UpsertProjectSyncStubAsync(mainProjectNumber, projectName, isMainProject: true, cancellationToken);
 
         var vundedStatusId = await _dbContext.OfferStatuses
             .Where(s => s.Name == "Vundet" && s.IsActive)
@@ -815,13 +813,6 @@ public sealed class OfferService : IOfferService
         offer.UpdatedBy = request.ConvertedBy;
         offer.UpdatedAtUtc = convertedAt;
         await _dbContext.SaveChangesAsync(cancellationToken);
-
-        int? resourcePlanEntriesMigrated = null;
-        if (request.MigrateResourcePlanEntries)
-        {
-            resourcePlanEntriesMigrated = await MigrateResourcePlanEntriesAsync(
-                offerId, mainProjectNumber, offer.Title, request.ConvertedBy, cancellationToken);
-        }
 
         // SharePoint IDs: prefer values passed by the caller, fall back to what's stored on the offer.
         var offerDriveId = !string.IsNullOrWhiteSpace(request.OfferSharePointDriveId)
@@ -872,6 +863,10 @@ public sealed class OfferService : IOfferService
                     responsibleEmployeeNumber: request.ResponsibleEmployeeNumber,
                     cancellationToken: cancellationToken);
 
+                // The planning target we may hang migrated hours off has an FK to ext.projects,
+                // so the sub-project needs its mirror row now rather than after the next sync.
+                await UpsertProjectSyncStubAsync(actualSubNumber, subName, isMainProject: false, cancellationToken);
+
                 subProjectsCreated.Add(new SubProjectCreatedResult
                 {
                     SubProjectNumber = actualSubNumber,
@@ -888,6 +883,51 @@ public sealed class OfferService : IOfferService
                     Error = ex.Message
                 });
             }
+        }
+
+        int? resourcePlanEntriesMigrated = null;
+        int? migratedToProjectNumber = null;
+        DateOnly? migratedFromDate = null;
+        if (request.MigrateResourcePlanEntries)
+        {
+            // Destination precedence: explicit number > chosen sub-project > first sub-project >
+            // main project. A sub-project that failed to be created falls back to the main project
+            // rather than dropping the hours on the floor.
+            var destinationNumber = mainProjectNumber;
+            var destinationName = projectName;
+
+            if (request.MigrateToProjectNumber is { } explicitNumber)
+            {
+                destinationNumber = explicitNumber;
+                destinationName = await _dbContext.Projects
+                    .Where(p => p.ProjectNumber == explicitNumber)
+                    .Select(p => p.ProjectName)
+                    .FirstOrDefaultAsync(cancellationToken) ?? projectName;
+            }
+            else if (subProjectsCreated.Count > 0)
+            {
+                var index = request.MigrateToSubProjectIndex ?? 0;
+                if (index < subProjectsCreated.Count)
+                {
+                    destinationNumber = subProjectsCreated[index].SubProjectNumber;
+                    destinationName = subProjectsCreated[index].SubProjectName;
+                }
+            }
+
+            // Only hours from the conversion day forward move; earlier entries stay on the offer
+            // so past weeks are not retroactively reattributed from tilbud to projekt.
+            migratedFromDate = DateOnly.FromDateTime(
+                TimeZoneInfo.ConvertTimeFromUtc(convertedAt, DanishTimeZone));
+
+            resourcePlanEntriesMigrated = await MigrateResourcePlanEntriesAsync(
+                offerId,
+                destinationNumber,
+                destinationName,
+                migratedFromDate.Value,
+                request.ConvertedBy,
+                cancellationToken);
+
+            migratedToProjectNumber = destinationNumber;
         }
 
         ProjectWorkspaceProvisioningResult? workspace = null;
@@ -948,6 +988,8 @@ public sealed class OfferService : IOfferService
             SubProjectsCreated = subProjectsCreated,
             SubProjectFailures = subProjectFailures,
             ResourcePlanEntriesMigrated = resourcePlanEntriesMigrated,
+            ResourcePlanEntriesMigratedToProjectNumber = migratedToProjectNumber,
+            ResourcePlanEntriesMigratedFromDate = migratedFromDate,
             Workspace = workspace
         };
     }
@@ -1080,8 +1122,9 @@ public sealed class OfferService : IOfferService
 
     private async Task<int> MigrateResourcePlanEntriesAsync(
         int offerId,
-        int mainProjectNumber,
-        string projectName,
+        int toProjectNumber,
+        string toProjectName,
+        DateOnly fromDate,
         string? updatedBy,
         CancellationToken cancellationToken)
     {
@@ -1092,16 +1135,16 @@ public sealed class OfferService : IOfferService
             return 0;
 
         var projectTarget = await _dbContext.PlanningTargets
-            .FirstOrDefaultAsync(pt => pt.ExtProjectNumber == mainProjectNumber, cancellationToken);
+            .FirstOrDefaultAsync(pt => pt.ExtProjectNumber == toProjectNumber, cancellationToken);
 
         if (projectTarget is null)
         {
             projectTarget = new PlanningTarget
             {
-                Code = mainProjectNumber.ToString(),
-                Name = projectName,
+                Code = toProjectNumber.ToString(),
+                Name = toProjectName,
                 TargetType = "BillableProject",
-                ExtProjectNumber = mainProjectNumber,
+                ExtProjectNumber = toProjectNumber,
                 IsActive = true,
                 IsPlannable = true,
                 CreatedAtUtc = DateTime.UtcNow
@@ -1111,7 +1154,7 @@ public sealed class OfferService : IOfferService
         }
 
         var entries = await _dbContext.ResourcePlanEntries
-            .Where(e => e.PlanningTargetId == offerTarget.PlanningTargetId)
+            .Where(e => e.PlanningTargetId == offerTarget.PlanningTargetId && e.PlanDate >= fromDate)
             .ToListAsync(cancellationToken);
 
         if (entries.Count > 0)
@@ -1125,7 +1168,7 @@ public sealed class OfferService : IOfferService
             var correlationId = Guid.NewGuid();
             var oldPlanningTargetId = offerTarget.PlanningTargetId;
             var newPlanningTargetId = projectTarget.PlanningTargetId;
-            var metadataJson = $$"""{"oldPlanningTargetId":{{oldPlanningTargetId}},"newPlanningTargetId":{{newPlanningTargetId}}}""";
+            var metadataJson = $$"""{"oldPlanningTargetId":{{oldPlanningTargetId}},"newPlanningTargetId":{{newPlanningTargetId}},"toProjectNumber":{{toProjectNumber}},"fromDate":"{{fromDate:yyyy-MM-dd}}"}""";
 
             foreach (var entry in entries)
             {
@@ -1167,6 +1210,45 @@ public sealed class OfferService : IOfferService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return entries.Count;
+    }
+
+    // Insert the sync mirror row immediately after creating the project in e-conomic, so the FKs
+    // on core.offers and core.planning_targets are satisfied right away instead of waiting for the
+    // next scheduled sync. We GET the project back from e-conomic rather than guessing at its
+    // fields from our own create request.
+    private async Task UpsertProjectSyncStubAsync(
+        int projectNumber,
+        string fallbackName,
+        bool isMainProject,
+        CancellationToken cancellationToken)
+    {
+        var stubExists = await _dbContext.Projects
+            .AnyAsync(p => p.ProjectNumber == projectNumber, cancellationToken);
+
+        if (stubExists)
+            return;
+
+        var source = await _projectSourceClient.GetProjectByNumberAsync(projectNumber, cancellationToken);
+
+        if (source is not null)
+        {
+            _dbContext.Projects.Add(ExtProjectMapper.ToNewEntity(source));
+        }
+        else
+        {
+            // e-conomic didn't return the project on an immediate read-after-write (rare) —
+            // fall back to a minimal row so the FK insert succeeds; the next scheduled sync
+            // will fill in the real data.
+            _dbContext.Projects.Add(new ExtProject
+            {
+                ProjectNumber = projectNumber,
+                ProjectName = fallbackName,
+                IsMainProject = isMainProject,
+                SourceLastSyncedAt = DateTime.UtcNow
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private static void ValidateQuarter(int? quarter, string fieldName)

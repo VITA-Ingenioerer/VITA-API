@@ -22,10 +22,27 @@ public sealed class ConvertOfferToProjectRequest
     public string? ConvertedBy { get; set; }
 
     /// <summary>
-    /// When true, all resource plan entries on the offer's planning target are remapped
-    /// to the new project's planning target, and the offer's planning target is deactivated.
+    /// When true, resource plan entries on the offer's planning target that fall on or after
+    /// the conversion date are remapped to the destination project's planning target, and the
+    /// offer's planning target is deactivated. Entries before the conversion date stay on the
+    /// offer so historical planning is not retroactively reattributed.
     /// </summary>
     public bool MigrateResourcePlanEntries { get; set; }
+
+    /// <summary>
+    /// Which of the <see cref="SubProjectNames"/> receives the migrated hours, by 0-based
+    /// position. Defaults to the first sub-project. Ignored when
+    /// <see cref="MigrateToProjectNumber"/> is set, or when no sub-projects are created —
+    /// in which case the hours go to the main project.
+    /// </summary>
+    public int? MigrateToSubProjectIndex { get; set; }
+
+    /// <summary>
+    /// Explicit destination project number for the migrated hours. Takes precedence over
+    /// <see cref="MigrateToSubProjectIndex"/>. The project must already exist in our mirror
+    /// of e-conomic — use this to aim at a project that is not created by this call.
+    /// </summary>
+    public int? MigrateToProjectNumber { get; set; }
 
     // Workspace provisioning
     public bool SkipWorkspaceProvisioning { get; set; }

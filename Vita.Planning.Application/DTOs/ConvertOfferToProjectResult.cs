@@ -11,6 +11,12 @@ public sealed class ConvertOfferToProjectResult
     public List<SubProjectFailure> SubProjectFailures { get; set; } = [];
     public bool HasSubProjectFailures => SubProjectFailures.Count > 0;
     public int? ResourcePlanEntriesMigrated { get; set; }
+
+    /// <summary>Project number the migrated hours landed on (sub-project or main project).</summary>
+    public int? ResourcePlanEntriesMigratedToProjectNumber { get; set; }
+
+    /// <summary>Entries on or after this date were moved; earlier entries stayed on the offer.</summary>
+    public DateOnly? ResourcePlanEntriesMigratedFromDate { get; set; }
     public ProjectWorkspaceProvisioningResult? Workspace { get; set; }
 }
 
