@@ -1019,7 +1019,9 @@ public sealed class OfferService : IOfferService
             ColorTag = offer.ColorTag,
             PlanningGroup = offer.PlanningGroup,
             Phase = offer.Phase,
-            ProbabilityPercent = offer.ProbabilityPercent,
+            // A converted offer is won, so the project starts at 100% rather than inheriting the
+            // offer's estimate. Editable on the project afterwards like any other metadata field.
+            ProbabilityPercent = 100m,
             LastPlanningReviewBy = offer.LastPlanningReviewBy,
             Priority = offer.Priority,
             IsBillableForPlanning = offer.IsBillableForPlanning,
