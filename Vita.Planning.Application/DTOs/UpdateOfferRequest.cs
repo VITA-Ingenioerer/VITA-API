@@ -106,9 +106,9 @@ public sealed class UpdateOfferRequest
     public int? ProjectTypeId { get; set; }
     public int? ProjectRoleId { get; set; }
     public int? ComplexityLevelId { get; set; }
-    public int? EngineeringDisciplineId { get; set; }
 
     public IReadOnlyList<int> SegmentIds { get; set; } = [];
+    public IReadOnlyList<int> EngineeringDisciplineIds { get; set; } = [];
 
     // Project address — from DAWA lookup
     [MaxLength(50)]

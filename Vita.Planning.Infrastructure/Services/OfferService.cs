@@ -120,6 +120,8 @@ public sealed class OfferService : IOfferService
         offer.Partners = await LoadPartnersAsync(id, cancellationToken);
         offer.SegmentIds = await LoadOfferSegmentIdsAsync(id, cancellationToken);
         offer.Segments = await LoadOfferSegmentNamesAsync(id, cancellationToken);
+        offer.EngineeringDisciplineIds = await LoadOfferDisciplineIdsAsync(id, cancellationToken);
+        offer.EngineeringDisciplines = await LoadOfferDisciplineNamesAsync(id, cancellationToken);
         return offer;
     }
 
@@ -200,7 +202,6 @@ public sealed class OfferService : IOfferService
                     ProjectTypeId = x.o.ProjectTypeId,
                     ProjectRoleId = x.o.ProjectRoleId,
                     ComplexityLevelId = x.o.ComplexityLevelId,
-                    EngineeringDisciplineId = x.o.EngineeringDisciplineId,
                     OfferCaseUrl = x.o.OfferCaseUrl,
                     OfferCasePath = x.o.OfferCasePath,
                     OfferCaseDriveId = x.o.OfferCaseDriveId,
@@ -257,7 +258,7 @@ public sealed class OfferService : IOfferService
 
         await ValidateLookupIdsAsync(request.CompetitionFormId, request.EnterpriseFormId,
             request.ConsultantFormId, request.ProjectTypeId, request.ProjectRoleId,
-            request.ComplexityLevelId, request.EngineeringDisciplineId, request.SegmentIds, cancellationToken);
+            request.ComplexityLevelId, request.EngineeringDisciplineIds, request.SegmentIds, cancellationToken);
 
         var actor = ResolveActor(caller);
         var entity = new Offer
@@ -316,8 +317,7 @@ public sealed class OfferService : IOfferService
             ConsultantFormId = request.ConsultantFormId,
             ProjectTypeId = request.ProjectTypeId,
             ProjectRoleId = request.ProjectRoleId,
-            ComplexityLevelId = request.ComplexityLevelId,
-            EngineeringDisciplineId = request.EngineeringDisciplineId
+            ComplexityLevelId = request.ComplexityLevelId
         };
 
         _dbContext.Offers.Add(entity);
@@ -325,12 +325,15 @@ public sealed class OfferService : IOfferService
 
         await SavePartnersAsync(entity.OfferId, request.Partners, cancellationToken);
         await SyncOfferSegmentsAsync(entity.OfferId, request.SegmentIds, cancellationToken);
+        await SyncOfferDisciplinesAsync(entity.OfferId, request.EngineeringDisciplineIds, cancellationToken);
 
         var dto = MapToDto(entity);
         await ResolveOfferStatusNameAsync(dto, cancellationToken);
         dto.Partners = await LoadPartnersAsync(entity.OfferId, cancellationToken);
         dto.SegmentIds = await LoadOfferSegmentIdsAsync(entity.OfferId, cancellationToken);
         dto.Segments = await LoadOfferSegmentNamesAsync(entity.OfferId, cancellationToken);
+        dto.EngineeringDisciplineIds = await LoadOfferDisciplineIdsAsync(entity.OfferId, cancellationToken);
+        dto.EngineeringDisciplines = await LoadOfferDisciplineNamesAsync(entity.OfferId, cancellationToken);
         await _changeLog.RecordChangeAsync(new RecordEntityChangeRequest
         {
             EventType = "OfferCreated",
@@ -385,7 +388,7 @@ public sealed class OfferService : IOfferService
 
         await ValidateLookupIdsAsync(request.CompetitionFormId, request.EnterpriseFormId,
             request.ConsultantFormId, request.ProjectTypeId, request.ProjectRoleId,
-            request.ComplexityLevelId, request.EngineeringDisciplineId, request.SegmentIds, cancellationToken);
+            request.ComplexityLevelId, request.EngineeringDisciplineIds, request.SegmentIds, cancellationToken);
 
         var oldSnapshot = MapToDto(entity);
         await ResolveOfferStatusNameAsync(oldSnapshot, cancellationToken);
@@ -446,7 +449,6 @@ public sealed class OfferService : IOfferService
         entity.ProjectTypeId = request.ProjectTypeId;
         entity.ProjectRoleId = request.ProjectRoleId;
         entity.ComplexityLevelId = request.ComplexityLevelId;
-        entity.EngineeringDisciplineId = request.EngineeringDisciplineId;
         entity.ProjectDawaId = NormalizeNullable(request.ProjectDawaId);
         entity.ProjectStreetAddress = NormalizeNullable(request.ProjectStreetAddress);
         entity.ProjectPostalCode = NormalizeNullable(request.ProjectPostalCode);
@@ -458,12 +460,15 @@ public sealed class OfferService : IOfferService
 
         await SavePartnersAsync(id, request.Partners, cancellationToken);
         await SyncOfferSegmentsAsync(id, request.SegmentIds, cancellationToken);
+        await SyncOfferDisciplinesAsync(id, request.EngineeringDisciplineIds, cancellationToken);
 
         var dto = MapToDto(entity);
         await ResolveOfferStatusNameAsync(dto, cancellationToken);
         dto.Partners = await LoadPartnersAsync(id, cancellationToken);
         dto.SegmentIds = await LoadOfferSegmentIdsAsync(id, cancellationToken);
         dto.Segments = await LoadOfferSegmentNamesAsync(id, cancellationToken);
+        dto.EngineeringDisciplineIds = await LoadOfferDisciplineIdsAsync(id, cancellationToken);
+        dto.EngineeringDisciplines = await LoadOfferDisciplineNamesAsync(id, cancellationToken);
         await _changeLog.RecordChangeAsync(new RecordEntityChangeRequest
         {
             EventType = "OfferUpdated",
@@ -996,7 +1001,6 @@ public sealed class OfferService : IOfferService
             ProjectTypeId = offer.ProjectTypeId,
             ProjectRoleId = offer.ProjectRoleId,
             ComplexityLevelId = offer.ComplexityLevelId,
-            EngineeringDisciplineId = offer.EngineeringDisciplineId,
             // Workspace links from the provisioning result
             ProjectArchiveGroupId = workspace?.GroupId,
             ProjectArchiveUrl = workspace?.SharePointSiteUrl,
@@ -1043,7 +1047,21 @@ public sealed class OfferService : IOfferService
             });
         }
 
-        if (offerSegments.Count > 0)
+        // Copy offer disciplines to the new project's metadata disciplines
+        var offerDisciplines = await _dbContext.OfferDisciplines
+            .Where(d => d.OfferId == offer.OfferId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var disc in offerDisciplines)
+        {
+            _dbContext.ProjectMetadataDisciplines.Add(new ProjectMetadataDiscipline
+            {
+                ProjectMetadataId = projectMeta.ProjectMetadataId,
+                EngineeringDisciplineId = disc.EngineeringDisciplineId
+            });
+        }
+
+        if (offerSegments.Count > 0 || offerDisciplines.Count > 0)
             await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -1233,7 +1251,6 @@ public sealed class OfferService : IOfferService
         ProjectTypeId = entity.ProjectTypeId,
         ProjectRoleId = entity.ProjectRoleId,
         ComplexityLevelId = entity.ComplexityLevelId,
-        EngineeringDisciplineId = entity.EngineeringDisciplineId,
         OfferCaseUrl = entity.OfferCaseUrl,
         OfferCasePath = entity.OfferCasePath,
         OfferCaseDriveId = entity.OfferCaseDriveId,
@@ -1281,11 +1298,6 @@ public sealed class OfferService : IOfferService
         if (dto.ComplexityLevelId.HasValue)
             dto.ComplexityLevelName = await _dbContext.ComplexityLevels
                 .Where(x => x.ComplexityLevelId == dto.ComplexityLevelId)
-                .Select(x => x.Name).FirstOrDefaultAsync(ct);
-
-        if (dto.EngineeringDisciplineId.HasValue)
-            dto.EngineeringDisciplineName = await _dbContext.EngineeringDisciplines
-                .Where(x => x.EngineeringDisciplineId == dto.EngineeringDisciplineId)
                 .Select(x => x.Name).FirstOrDefaultAsync(ct);
     }
 
@@ -1514,7 +1526,7 @@ public sealed class OfferService : IOfferService
         int? projectTypeId,
         int? projectRoleId,
         int? complexityLevelId,
-        int? engineeringDisciplineId,
+        IReadOnlyList<int> engineeringDisciplineIds,
         IReadOnlyList<int> segmentIds,
         CancellationToken ct)
     {
@@ -1560,12 +1572,16 @@ public sealed class OfferService : IOfferService
             if (!exists)
                 throw new InvalidOperationException($"ComplexityLevel with id {complexityLevelId.Value} does not exist.");
         }
-        if (engineeringDisciplineId.HasValue)
+        if (engineeringDisciplineIds.Count > 0)
         {
-            var exists = await _dbContext.EngineeringDisciplines
-                .AnyAsync(x => x.EngineeringDisciplineId == engineeringDisciplineId.Value && x.IsActive, ct);
-            if (!exists)
-                throw new InvalidOperationException($"EngineeringDiscipline with id {engineeringDisciplineId.Value} does not exist.");
+            var validIds = await _dbContext.EngineeringDisciplines
+                .Where(x => x.IsActive)
+                .Select(x => x.EngineeringDisciplineId)
+                .ToListAsync(ct);
+
+            var invalidIds = engineeringDisciplineIds.Except(validIds).ToList();
+            if (invalidIds.Count > 0)
+                throw new InvalidOperationException($"EngineeringDiscipline ids {string.Join(", ", invalidIds)} do not exist.");
         }
         if (segmentIds.Count > 0)
         {
@@ -1615,6 +1631,45 @@ public sealed class OfferService : IOfferService
             .AsNoTracking()
             .Where(x => x.OfferId == offerId)
             .Join(_dbContext.Segments, os => os.SegmentId, s => s.SegmentId, (os, s) => s.Name)
+            .ToListAsync(ct);
+    }
+
+    private async Task SyncOfferDisciplinesAsync(int offerId, IReadOnlyList<int> disciplineIds, CancellationToken ct)
+    {
+        var existing = await _dbContext.OfferDisciplines
+            .Where(x => x.OfferId == offerId)
+            .ToListAsync(ct);
+
+        _dbContext.OfferDisciplines.RemoveRange(existing);
+
+        foreach (var disciplineId in disciplineIds.Distinct())
+        {
+            _dbContext.OfferDisciplines.Add(new OfferDiscipline
+            {
+                OfferId = offerId,
+                EngineeringDisciplineId = disciplineId
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(ct);
+    }
+
+    private async Task<IReadOnlyList<int>> LoadOfferDisciplineIdsAsync(int offerId, CancellationToken ct)
+    {
+        return await _dbContext.OfferDisciplines
+            .AsNoTracking()
+            .Where(x => x.OfferId == offerId)
+            .Select(x => x.EngineeringDisciplineId)
+            .ToListAsync(ct);
+    }
+
+    private async Task<IReadOnlyList<string>> LoadOfferDisciplineNamesAsync(int offerId, CancellationToken ct)
+    {
+        return await _dbContext.OfferDisciplines
+            .AsNoTracking()
+            .Where(x => x.OfferId == offerId)
+            .Join(_dbContext.EngineeringDisciplines, od => od.EngineeringDisciplineId,
+                d => d.EngineeringDisciplineId, (od, d) => d.Name)
             .ToListAsync(ct);
     }
 

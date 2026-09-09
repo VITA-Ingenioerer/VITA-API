@@ -48,6 +48,8 @@ public sealed class PlanningDbContext : DbContext
     public DbSet<Segment> Segments => Set<Segment>();
     public DbSet<OfferSegment> OfferSegments => Set<OfferSegment>();
     public DbSet<ProjectMetadataSegment> ProjectMetadataSegments => Set<ProjectMetadataSegment>();
+    public DbSet<OfferDiscipline> OfferDisciplines => Set<OfferDiscipline>();
+    public DbSet<ProjectMetadataDiscipline> ProjectMetadataDisciplines => Set<ProjectMetadataDiscipline>();
     public DbSet<CustomerPartnerRole> CustomerPartnerRoles => Set<CustomerPartnerRole>();
     public DbSet<PlanningPartnerRoleType> PlanningPartnerRoleTypes => Set<PlanningPartnerRoleType>();
     public DbSet<ResourcePlanEntryHistory> ResourcePlanEntryHistories => Set<ResourcePlanEntryHistory>();
@@ -128,6 +130,22 @@ public sealed class PlanningDbContext : DbContext
             .HasForeignKey(x => x.SegmentId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<OfferDiscipline>()
+            .HasIndex(x => new { x.OfferId, x.EngineeringDisciplineId })
+            .IsUnique();
+
+        modelBuilder.Entity<OfferDiscipline>()
+            .HasOne(x => x.Offer)
+            .WithMany()
+            .HasForeignKey(x => x.OfferId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OfferDiscipline>()
+            .HasOne(x => x.Discipline)
+            .WithMany()
+            .HasForeignKey(x => x.EngineeringDisciplineId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<CustomerPartnerRole>()
             .HasOne(x => x.PlanningTarget)
             .WithMany()
@@ -183,6 +201,22 @@ public sealed class PlanningDbContext : DbContext
             .HasOne(x => x.SegmentEntity)
             .WithMany()
             .HasForeignKey(x => x.SegmentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProjectMetadataDiscipline>()
+            .HasIndex(x => new { x.ProjectMetadataId, x.EngineeringDisciplineId })
+            .IsUnique();
+
+        modelBuilder.Entity<ProjectMetadataDiscipline>()
+            .HasOne(x => x.ProjectMetadata)
+            .WithMany()
+            .HasForeignKey(x => x.ProjectMetadataId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProjectMetadataDiscipline>()
+            .HasOne(x => x.Discipline)
+            .WithMany()
+            .HasForeignKey(x => x.EngineeringDisciplineId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<ProjectTeamMember>()

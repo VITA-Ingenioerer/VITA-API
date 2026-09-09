@@ -56,8 +56,6 @@ public sealed class ProjectDetailsDto
     public int? ProjectTypeId { get; set; }
     public int? ProjectRoleId { get; set; }
     public int? ComplexityLevelId { get; set; }
-    public int? EngineeringDisciplineId { get; set; }
-    public string? EngineeringDisciplineName { get; set; }
     public string? ProjectArchiveUrl { get; set; }
     public string? ProjectArchiveSiteId { get; set; }
     public string? ProjectArchiveDriveId { get; set; }
@@ -70,6 +68,8 @@ public sealed class ProjectDetailsDto
     public IReadOnlyList<ProjectPartnerDto> Partners { get; set; } = [];
     public IReadOnlyList<int> SegmentIds { get; set; } = [];
     public IReadOnlyList<string> Segments { get; set; } = [];
+    public IReadOnlyList<int> EngineeringDisciplineIds { get; set; } = [];
+    public IReadOnlyList<string> EngineeringDisciplines { get; set; } = [];
 
     // Project address — from DAWA lookup
     public string? ProjectDawaId { get; set; }

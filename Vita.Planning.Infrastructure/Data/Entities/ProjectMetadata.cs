@@ -158,9 +158,6 @@ public sealed class ProjectMetadata
     [Column("complexity_level_id")]
     public int? ComplexityLevelId { get; set; }
 
-    [Column("engineering_discipline_id")]
-    public int? EngineeringDisciplineId { get; set; }
-
     [MaxLength(255)]
     [Column("project_archive_group_id")]
     public string? ProjectArchiveGroupId { get; set; }

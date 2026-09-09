@@ -4,5 +4,5 @@ namespace Vita.Planning.Application.Interfaces;
 
 public interface ISalesAnalyticsService
 {
-    Task<SalesAnalyticsDto> GetSalesAnalyticsAsync(CancellationToken cancellationToken = default);
+    Task<SalesAnalyticsDto> GetSalesAnalyticsAsync(SalesAnalyticsFilterRequest? filter = null, CancellationToken cancellationToken = default);
 }

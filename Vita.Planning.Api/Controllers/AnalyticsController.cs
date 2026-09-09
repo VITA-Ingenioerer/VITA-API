@@ -16,9 +16,14 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     [HttpGet("sales-overview")]
-    public async Task<ActionResult<SalesAnalyticsDto>> GetSalesOverview(CancellationToken cancellationToken)
+    public async Task<ActionResult<SalesAnalyticsDto>> GetSalesOverview(
+        [FromQuery] int? year,
+        [FromQuery] string? officeCode,
+        [FromQuery] string? region,
+        CancellationToken cancellationToken)
     {
-        var result = await _service.GetSalesAnalyticsAsync(cancellationToken);
+        var filter = new SalesAnalyticsFilterRequest { Year = year, OfficeCode = officeCode, Region = region };
+        var result = await _service.GetSalesAnalyticsAsync(filter, cancellationToken);
         return Ok(result);
     }
 }

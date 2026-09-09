@@ -54,12 +54,14 @@ public sealed class ProjectMetadataDto
     public string? ProjectRoleName { get; set; }
     public int? ComplexityLevelId { get; set; }
     public string? ComplexityLevelName { get; set; }
-    public int? EngineeringDisciplineId { get; set; }
-    public string? EngineeringDisciplineName { get; set; }
 
     // Segments (many-to-many)
     public IReadOnlyList<int> SegmentIds { get; set; } = [];
     public IReadOnlyList<string> Segments { get; set; } = [];
+
+    // Fagdiscipliner (many-to-many)
+    public IReadOnlyList<int> EngineeringDisciplineIds { get; set; } = [];
+    public IReadOnlyList<string> EngineeringDisciplines { get; set; } = [];
 
     // Project archive (SharePoint / Outlook)
     public string? ProjectArchiveUrl { get; set; }

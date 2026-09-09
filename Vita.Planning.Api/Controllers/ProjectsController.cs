@@ -99,9 +99,17 @@ public sealed class ProjectsController : ControllerBase
         int projectNumber,
         CancellationToken cancellationToken)
     {
+        // pa.SourceLastSyncedAt != null is what separates a genuine, e-conomic-synced
+        // restricted activity list from rows EnsureActivityForProject provisions locally
+        // just to satisfy the resource_plan_entries FK. Without this filter, picking one
+        // global-catalog activity on an unrestricted project silently turns the project
+        // "restricted to just that one activity" for good — the auto-provisioned row's
+        // mere existence was being read as "this project has a curated list", even though
+        // it was never a real restriction and removing the row-level assignment doesn't
+        // clean the provisioned row back up.
         var activities = await _dbContext.ProjectActivities
             .AsNoTracking()
-            .Where(pa => pa.ProjectNumber == projectNumber)
+            .Where(pa => pa.ProjectNumber == projectNumber && pa.SourceLastSyncedAt != null)
             .Join(
                 _dbContext.Activities,
                 pa => pa.ActivityNumber,
@@ -140,9 +148,13 @@ public sealed class ProjectsController : ControllerBase
         [FromBody] EnsureProjectActivityRequest request,
         CancellationToken cancellationToken)
     {
+        // Same distinction as GetActivities: a row this endpoint provisioned itself
+        // (SourceLastSyncedAt == null) must never count as "already has a restricted
+        // list" — otherwise the first ensured activity on a genuinely unrestricted
+        // project would permanently block ensuring any other one afterward.
         var hasRestrictedList = await _dbContext.ProjectActivities
             .AsNoTracking()
-            .AnyAsync(pa => pa.ProjectNumber == projectNumber, cancellationToken);
+            .AnyAsync(pa => pa.ProjectNumber == projectNumber && pa.SourceLastSyncedAt != null, cancellationToken);
 
         if (hasRestrictedList)
         {

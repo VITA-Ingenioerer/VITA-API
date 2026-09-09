@@ -78,9 +78,9 @@ public sealed class UpsertProjectMetadataRequest
     public int? ProjectTypeId { get; set; }
     public int? ProjectRoleId { get; set; }
     public int? ComplexityLevelId { get; set; }
-    public int? EngineeringDisciplineId { get; set; }
 
     public IReadOnlyList<int> SegmentIds { get; set; } = [];
+    public IReadOnlyList<int> EngineeringDisciplineIds { get; set; } = [];
 
     // Project archive links — managed by dedicated folder-creation endpoints.
     // Only overwrite when the caller explicitly provides a value.

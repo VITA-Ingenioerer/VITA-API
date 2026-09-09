@@ -121,6 +121,8 @@ public sealed class ProjectQueryService : IProjectQueryService
 
         IReadOnlyList<int> segmentIds = [];
         IReadOnlyList<string> segmentNames = [];
+        IReadOnlyList<int> disciplineIds = [];
+        IReadOnlyList<string> disciplineNames = [];
         if (meta is not null)
         {
             var segs = await _db.ProjectMetadataSegments
@@ -131,6 +133,15 @@ public sealed class ProjectQueryService : IProjectQueryService
                 .ToListAsync(cancellationToken);
             segmentIds = segs.Select(s => s.SegmentId).ToList();
             segmentNames = segs.Select(s => s.Name).ToList();
+
+            var discs = await _db.ProjectMetadataDisciplines
+                .AsNoTracking()
+                .Where(d => d.ProjectMetadataId == meta.ProjectMetadataId)
+                .Join(_db.EngineeringDisciplines, d => d.EngineeringDisciplineId,
+                    disc => disc.EngineeringDisciplineId, (d, disc) => new { d.EngineeringDisciplineId, disc.Name })
+                .ToListAsync(cancellationToken);
+            disciplineIds = discs.Select(d => d.EngineeringDisciplineId).ToList();
+            disciplineNames = discs.Select(d => d.Name).ToList();
         }
 
         return new ProjectDetailsDto
@@ -186,7 +197,6 @@ public sealed class ProjectQueryService : IProjectQueryService
             ProjectTypeId = meta?.ProjectTypeId,
             ProjectRoleId = meta?.ProjectRoleId,
             ComplexityLevelId = meta?.ComplexityLevelId,
-            EngineeringDisciplineId = meta?.EngineeringDisciplineId,
             ProjectArchiveUrl = meta?.ProjectArchiveUrl,
             ProjectArchiveSiteId = meta?.ProjectArchiveSiteId,
             ProjectArchiveDriveId = meta?.ProjectArchiveDriveId,
@@ -199,6 +209,8 @@ public sealed class ProjectQueryService : IProjectQueryService
             Partners = partners,
             SegmentIds = segmentIds,
             Segments = segmentNames,
+            EngineeringDisciplineIds = disciplineIds,
+            EngineeringDisciplines = disciplineNames,
         };
     }
 

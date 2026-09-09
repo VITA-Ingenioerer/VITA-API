@@ -35,6 +35,8 @@ public sealed class OfferDto
     public IReadOnlyList<OfferPartnerDto> Partners { get; set; } = [];
     public IReadOnlyList<int> SegmentIds { get; set; } = [];
     public IReadOnlyList<string> Segments { get; set; } = [];
+    public IReadOnlyList<int> EngineeringDisciplineIds { get; set; } = [];
+    public IReadOnlyList<string> EngineeringDisciplines { get; set; } = [];
     public bool IsActive { get; set; }
     public string? CreatedBy { get; set; }
     public string? UpdatedBy { get; set; }
@@ -78,8 +80,6 @@ public sealed class OfferDto
     public string? ProjectRoleName { get; set; }
     public int? ComplexityLevelId { get; set; }
     public string? ComplexityLevelName { get; set; }
-    public int? EngineeringDisciplineId { get; set; }
-    public string? EngineeringDisciplineName { get; set; }
 
     // Offer case SharePoint / Outlook folder links
     public string? OfferCaseUrl { get; set; }

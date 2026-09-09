@@ -205,9 +205,6 @@ public sealed class Offer
     [Column("complexity_level_id")]
     public int? ComplexityLevelId { get; set; }
 
-    [Column("engineering_discipline_id")]
-    public int? EngineeringDisciplineId { get; set; }
-
     // Offer case SharePoint / Outlook folder links — managed by dedicated endpoints
 
     [Column("offer_case_url", TypeName = "nvarchar(max)")]

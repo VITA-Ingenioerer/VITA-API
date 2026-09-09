@@ -79,6 +79,7 @@ public sealed class ProjectMetadataService : IProjectMetadataService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         await SyncSegmentsAsync(entity.ProjectMetadataId, request.SegmentIds, cancellationToken);
+        await SyncDisciplinesAsync(entity.ProjectMetadataId, request.EngineeringDisciplineIds, cancellationToken);
 
         var result = await MapToDtoWithLookupsAsync(entity, cancellationToken);
         await _changeLog.RecordChangeAsync(new RecordEntityChangeRequest
@@ -146,12 +147,16 @@ public sealed class ProjectMetadataService : IProjectMetadataService
             if (!exists)
                 throw new InvalidOperationException($"ComplexityLevel with id {request.ComplexityLevelId.Value} does not exist.");
         }
-        if (request.EngineeringDisciplineId.HasValue)
+        if (request.EngineeringDisciplineIds.Count > 0)
         {
-            var exists = await _dbContext.EngineeringDisciplines
-                .AnyAsync(x => x.EngineeringDisciplineId == request.EngineeringDisciplineId.Value && x.IsActive, ct);
-            if (!exists)
-                throw new InvalidOperationException($"EngineeringDiscipline with id {request.EngineeringDisciplineId.Value} does not exist.");
+            var validIds = await _dbContext.EngineeringDisciplines
+                .Where(x => x.IsActive)
+                .Select(x => x.EngineeringDisciplineId)
+                .ToListAsync(ct);
+
+            var invalidIds = request.EngineeringDisciplineIds.Except(validIds).ToList();
+            if (invalidIds.Count > 0)
+                throw new InvalidOperationException($"EngineeringDiscipline ids {string.Join(", ", invalidIds)} do not exist.");
         }
         if (request.SegmentIds.Count > 0)
         {
@@ -204,7 +209,6 @@ public sealed class ProjectMetadataService : IProjectMetadataService
         entity.ProjectTypeId = request.ProjectTypeId;
         entity.ProjectRoleId = request.ProjectRoleId;
         entity.ComplexityLevelId = request.ComplexityLevelId;
-        entity.EngineeringDisciplineId = request.EngineeringDisciplineId;
         entity.ProjectDawaId = NormalizeNullable(request.ProjectDawaId);
         entity.ProjectStreetAddress = NormalizeNullable(request.ProjectStreetAddress);
         entity.ProjectPostalCode = NormalizeNullable(request.ProjectPostalCode);
@@ -258,6 +262,26 @@ public sealed class ProjectMetadataService : IProjectMetadataService
         await _dbContext.SaveChangesAsync(ct);
     }
 
+    private async Task SyncDisciplinesAsync(int projectMetadataId, IReadOnlyList<int> disciplineIds, CancellationToken ct)
+    {
+        var existing = await _dbContext.ProjectMetadataDisciplines
+            .Where(x => x.ProjectMetadataId == projectMetadataId)
+            .ToListAsync(ct);
+
+        _dbContext.ProjectMetadataDisciplines.RemoveRange(existing);
+
+        foreach (var disciplineId in disciplineIds.Distinct())
+        {
+            _dbContext.ProjectMetadataDisciplines.Add(new ProjectMetadataDiscipline
+            {
+                ProjectMetadataId = projectMetadataId,
+                EngineeringDisciplineId = disciplineId
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(ct);
+    }
+
     private async Task<ProjectMetadataDto> BuildMetadataSnapshotAsync(
         ProjectMetadata entity,
         int? planningTargetId,
@@ -274,6 +298,16 @@ public sealed class ProjectMetadataService : IProjectMetadataService
 
         dto.SegmentIds = segments.Select(x => x.SegmentId).ToList();
         dto.Segments = segments.Select(x => x.Name).ToList();
+
+        var disciplines = await _dbContext.ProjectMetadataDisciplines
+            .AsNoTracking()
+            .Where(x => x.ProjectMetadataId == entity.ProjectMetadataId)
+            .Join(_dbContext.EngineeringDisciplines.AsNoTracking(), pmd => pmd.EngineeringDisciplineId,
+                d => d.EngineeringDisciplineId, (pmd, d) => new { pmd.EngineeringDisciplineId, d.Name })
+            .ToListAsync(ct);
+
+        dto.EngineeringDisciplineIds = disciplines.Select(x => x.EngineeringDisciplineId).ToList();
+        dto.EngineeringDisciplines = disciplines.Select(x => x.Name).ToList();
         return dto;
     }
 
@@ -317,12 +351,6 @@ public sealed class ProjectMetadataService : IProjectMetadataService
                 .Where(x => x.ComplexityLevelId == entity.ComplexityLevelId)
                 .Select(x => x.Name).FirstOrDefaultAsync(ct);
         }
-        if (entity.EngineeringDisciplineId.HasValue)
-        {
-            dto.EngineeringDisciplineName = await _dbContext.EngineeringDisciplines
-                .Where(x => x.EngineeringDisciplineId == entity.EngineeringDisciplineId)
-                .Select(x => x.Name).FirstOrDefaultAsync(ct);
-        }
 
         var segments = await _dbContext.ProjectMetadataSegments
             .Where(x => x.ProjectMetadataId == entity.ProjectMetadataId)
@@ -332,6 +360,15 @@ public sealed class ProjectMetadataService : IProjectMetadataService
 
         dto.SegmentIds = segments.Select(x => x.SegmentId).ToList();
         dto.Segments = segments.Select(x => x.Name).ToList();
+
+        var disciplines = await _dbContext.ProjectMetadataDisciplines
+            .Where(x => x.ProjectMetadataId == entity.ProjectMetadataId)
+            .Join(_dbContext.EngineeringDisciplines, pmd => pmd.EngineeringDisciplineId,
+                d => d.EngineeringDisciplineId, (pmd, d) => new { pmd.EngineeringDisciplineId, d.Name })
+            .ToListAsync(ct);
+
+        dto.EngineeringDisciplineIds = disciplines.Select(x => x.EngineeringDisciplineId).ToList();
+        dto.EngineeringDisciplines = disciplines.Select(x => x.Name).ToList();
 
         return dto;
     }
@@ -382,7 +419,6 @@ public sealed class ProjectMetadataService : IProjectMetadataService
         ProjectTypeId = entity.ProjectTypeId,
         ProjectRoleId = entity.ProjectRoleId,
         ComplexityLevelId = entity.ComplexityLevelId,
-        EngineeringDisciplineId = entity.EngineeringDisciplineId,
         ProjectArchiveUrl = entity.ProjectArchiveUrl,
         ProjectArchiveSiteId = entity.ProjectArchiveSiteId,
         ProjectArchiveDriveId = entity.ProjectArchiveDriveId,
@@ -447,7 +483,6 @@ public sealed class ProjectMetadataService : IProjectMetadataService
             ProjectTypeId = entity.ProjectTypeId,
             ProjectRoleId = entity.ProjectRoleId,
             ComplexityLevelId = entity.ComplexityLevelId,
-            EngineeringDisciplineId = entity.EngineeringDisciplineId,
             ProjectArchiveUrl = entity.ProjectArchiveUrl,
             ProjectArchiveSiteId = entity.ProjectArchiveSiteId,
             ProjectArchiveDriveId = entity.ProjectArchiveDriveId,
