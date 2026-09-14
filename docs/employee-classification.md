@@ -201,16 +201,34 @@ secret, which is the main reason to prefer it.
 
 ## Deployment order
 
-1. Grant + consent the Graph permissions above.
-2. Run `Sql/2026-09-employee-classification.sql` against the target database.
-3. Credentials — nothing to do when `MicrosoftGraph:ClientSecret` is already configured
-   for that environment; the classification client inherits it.
+1. Grant + consent the Graph permissions above. **Done 2026-09-14.**
+2. Run `Sql/2026-09-employee-classification.sql` against the database. **Done 2026-09-14.**
+3. Credentials — nothing to do when `MicrosoftGraph:ClientSecret` is already configured for
+   that app service; the classification client inherits it. Both app services already have
+   it, pointing at app registration `f4b7d367-…`, which is the one holding the permissions.
+   **Nothing to do.**
 4. Set `WriteUserPrincipalNames` (or assign the app role) — otherwise every write 403s.
+   **Done 2026-09-14** on both app services (`mkj@vitaing.dk`).
 5. Deploy the API, then the SPFx package.
 6. Smoke test: `GET /api/employee-classification/options` should return three non-empty lists.
 
 Steps 1 and 2 are independent; the API starts fine without either, and only classification
 requests fail.
+
+### There is only one database
+
+`vita-planning-api-dev` and `vita-planning-api-prod` both point at
+**`vita-bigben-dev`** — there is no separate production database. So the migration in step 2
+covers both environments, and there is no second migration to run at deploy time.
+
+Two consequences worth remembering:
+
+- Testing the editor against the dev app service writes the same rows the prod app service
+  serves. "Try it on dev first" isolates the *code*, not the *data*.
+- Both app services authenticate to SQL with **Active Directory Managed Identity** (dev
+  principal `4aed68f6-…`, prod `b05897fd-…`), so each needs its database grant. Existing
+  features already work, so both grants are in place — but a future schema change that adds
+  a new schema or object type may need permissions checked for both.
 
 ## Known taxonomy problems (as of 2026-09-14)
 
