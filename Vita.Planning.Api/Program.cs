@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
@@ -20,12 +20,50 @@ var requireGlobalAuthentication =
     builder.Configuration.GetValue<bool>(
         "Authentication:RequireGlobalAuthentication");
 
+// Employee classification drives Entra dynamic group membership and potentially
+// downstream access, so writing it is deliberately narrower than ordinary planner access.
+// A caller qualifies by holding the app role, or by being on an explicit UPN allowlist —
+// the allowlist exists so the feature can be operated before app roles are rolled out.
+// Both default to empty/unassigned, i.e. nobody can write until one is configured.
+var classificationWriteRole =
+    builder.Configuration["EntraClassification:WriteRole"]
+    ?? "Planning.EmployeeClassification.Write";
+
+var classificationWriteUpns =
+    builder.Configuration.GetSection("EntraClassification:WriteUserPrincipalNames").Get<string[]>()
+    ?? [];
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("PlannerAccess", policy =>
     {
         policy.RequireAuthenticatedUser();
         policy.RequireScope("Planner.Access");
+    });
+
+    options.AddPolicy("EmployeeClassificationWrite", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireScope("Planner.Access");
+        policy.RequireAssertion(context =>
+        {
+            // Checked as a raw claim rather than via IsInRole: app roles arrive in the
+            // "roles" claim, which is not the role claim type JwtBearer maps by default.
+            var hasRole = context.User.Claims.Any(c =>
+                (c.Type == "roles" || c.Type == System.Security.Claims.ClaimTypes.Role) &&
+                string.Equals(c.Value, classificationWriteRole, StringComparison.OrdinalIgnoreCase));
+
+            if (hasRole)
+            {
+                return true;
+            }
+
+            var upn = context.User.FindFirst("upn")?.Value
+                      ?? context.User.FindFirst("preferred_username")?.Value;
+
+            return !string.IsNullOrWhiteSpace(upn) &&
+                   classificationWriteUpns.Contains(upn, StringComparer.OrdinalIgnoreCase);
+        });
     });
 
     if (requireGlobalAuthentication)
@@ -164,6 +202,33 @@ builder.Services.AddHttpClient<IEconomicProjectWriteClient, EconomicProjectWrite
 builder.Services.Configure<MicrosoftGraphSettings>(
     builder.Configuration.GetSection("MicrosoftGraph"));
 
+builder.Services.Configure<EntraClassificationSettings>(
+    builder.Configuration.GetSection("EntraClassification"));
+
+// Employee classification talks to the same app registration as the other Graph clients.
+// Rather than making the same tenant/client/secret be configured twice, anything left
+// unset in the EntraClassification section inherits from MicrosoftGraph. Setting a value
+// explicitly still wins, so the two can be split later without a code change.
+builder.Services.PostConfigure<EntraClassificationSettings>(settings =>
+{
+    var graph = builder.Configuration.GetSection("MicrosoftGraph");
+
+    if (string.IsNullOrWhiteSpace(settings.TenantId))
+    {
+        settings.TenantId = graph["TenantId"] ?? string.Empty;
+    }
+
+    if (string.IsNullOrWhiteSpace(settings.ClientId))
+    {
+        settings.ClientId = graph["ClientId"] ?? string.Empty;
+    }
+
+    if (string.IsNullOrWhiteSpace(settings.ClientSecret))
+    {
+        settings.ClientSecret = graph["ClientSecret"] ?? string.Empty;
+    }
+});
+
 builder.Services.Configure<TilbudssagerSettings>(
     builder.Configuration.GetSection("Tilbudssager"));
 
@@ -184,6 +249,10 @@ builder.Services.AddHttpClient<IMicrosoftGraphUserSourceClient, MicrosoftGraphUs
 {
     client.Timeout = TimeSpan.FromSeconds(60);
 });
+builder.Services.AddHttpClient<IEntraEmployeeClassificationClient, EntraEmployeeClassificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
 builder.Services.AddHttpClient<IRessourceplanWorkbookSourceClient, RessourceplanWorkbookSourceClient>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(60);
@@ -201,6 +270,7 @@ builder.Services.AddScoped<IProjectManagementService, ProjectManagementService>(
 builder.Services.AddScoped<IEconomicProjectNumberAllocator, EconomicProjectNumberAllocator>();
 builder.Services.AddScoped<ICustomerPartnerRoleService, CustomerPartnerRoleService>();
 builder.Services.AddScoped<IUserSyncService, UserSyncService>();
+builder.Services.AddScoped<IEmployeeIdentityService, EmployeeIdentityService>();
 builder.Services.AddScoped<ISyncRunService, SyncRunService>();
 builder.Services.AddScoped<IInternalPlanningCodeService, InternalPlanningCodeService>();
 builder.Services.AddScoped<IOfferService, OfferService>();

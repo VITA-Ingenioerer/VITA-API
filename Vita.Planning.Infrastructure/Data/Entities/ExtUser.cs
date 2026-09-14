@@ -33,4 +33,19 @@ public sealed class ExtUser
 
     [Column("is_active")]
     public bool IsActive { get; set; }
+
+    // Employee classification. Microsoft Entra custom security attributes
+    // (VITA.PrimaryFaglighed / VITA.SecondaryFagligheder / VITA.Profession) are the
+    // authority for all three; these are a local read model so the planner can filter and
+    // group the roster without a Graph call per employee. Written only by
+    // EmployeeIdentityService, after Entra has accepted the change.
+
+    [Column("primary_faglighed")]
+    public string? PrimaryFaglighed { get; set; }
+
+    [Column("profession")]
+    public string? Profession { get; set; }
+
+    public ICollection<UserSecondaryFaglighed> SecondaryFagligheder { get; set; } =
+        new List<UserSecondaryFaglighed>();
 }

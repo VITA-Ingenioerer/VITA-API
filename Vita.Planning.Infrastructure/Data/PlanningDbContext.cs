@@ -62,6 +62,7 @@ public sealed class PlanningDbContext : DbContext
     public DbSet<OvertimeBalanceRefreshState> OvertimeBalanceRefreshStates => Set<OvertimeBalanceRefreshState>();
     public DbSet<OvertimeBalanceComputedRow> OvertimeBalanceComputedRows => Set<OvertimeBalanceComputedRow>();
     public DbSet<ExtTimeEntry> TimeEntries => Set<ExtTimeEntry>();
+    public DbSet<UserSecondaryFaglighed> UserSecondaryFagligheder => Set<UserSecondaryFaglighed>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -108,6 +109,28 @@ public sealed class PlanningDbContext : DbContext
         // Requires the matching CREATE INDEX in the hand-run SQL script — see
         // Sql/2026-08-add-catalog-filter-indexes.sql.
         modelBuilder.Entity<ExtUser>().HasIndex(x => x.ManagerEmployeeId);
+
+        modelBuilder.Entity<UserSecondaryFaglighed>(entity =>
+        {
+            entity.HasKey(x => new { x.EmployeeId, x.Faglighed });
+
+            entity.Property(x => x.Faglighed).HasMaxLength(200).IsRequired();
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.SecondaryFagligheder)
+                .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // "Which employees have faglighed X" is a roster-wide filter in the planner,
+            // and the composite PK above is no help for it (wrong leading column).
+            // Requires the matching CREATE INDEX in the hand-run SQL script — see
+            // Sql/2026-09-employee-classification.sql.
+            entity.HasIndex(x => x.Faglighed);
+        });
+
+        modelBuilder.Entity<ExtUser>().Property(x => x.PrimaryFaglighed).HasMaxLength(200);
+        modelBuilder.Entity<ExtUser>().Property(x => x.Profession).HasMaxLength(100);
+        modelBuilder.Entity<ExtUser>().HasIndex(x => x.PrimaryFaglighed);
 
         modelBuilder.Entity<OpsSyncError>()
             .HasOne(x => x.SyncRun)

@@ -10,6 +10,11 @@ public sealed class ScheduledSyncHostedService : BackgroundService
 
     private static readonly SemaphoreSlim SyncLock = new(1, 1);
 
+    // Employee classification reconciliation pulls the whole roster from Microsoft Graph,
+    // and classification changes far more rarely than project/time data — so it runs on its
+    // own slower cadence instead of on every 10-minute sync pass.
+    private static DateTimeOffset _lastClassificationReconcileUtc = DateTimeOffset.MinValue;
+
     private static readonly TimeZoneInfo DanishTimeZone =
         TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time");
 
@@ -115,6 +120,9 @@ public sealed class ScheduledSyncHostedService : BackgroundService
             var userSyncService =
                 scope.ServiceProvider.GetRequiredService<IUserSyncService>();
 
+            var employeeIdentityService =
+                scope.ServiceProvider.GetRequiredService<IEmployeeIdentityService>();
+
             var activitySyncService =
                 scope.ServiceProvider.GetRequiredService<IActivitySyncService>();
 
@@ -152,6 +160,24 @@ public sealed class ScheduledSyncHostedService : BackgroundService
                 () => userSyncService.SyncUsersAsync(
                     initiatedBy: initiatedBy,
                     cancellationToken: cancellationToken));
+
+            // Entra -> DB only. A classification edited directly in Entra reaches Ressourceplan
+            // here; the reverse direction only ever happens from an explicit user action in
+            // the employee editor.
+            var reconcileMinutes = Math.Max(
+                5,
+                _configuration.GetValue<int?>("EntraClassification:ReconcileIntervalMinutes") ?? 30);
+
+            if (DateTimeOffset.UtcNow - _lastClassificationReconcileUtc >= TimeSpan.FromMinutes(reconcileMinutes))
+            {
+                await RunStepAsync(
+                    "employee-classification-reconcile",
+                    () => employeeIdentityService.ReconcileAllAsync(cancellationToken));
+
+                // Set regardless of outcome: a failing Graph call should retry on the next
+                // interval, not on every sync pass for the rest of the day.
+                _lastClassificationReconcileUtc = DateTimeOffset.UtcNow;
+            }
 
             await RunStepAsync(
                 "activities",

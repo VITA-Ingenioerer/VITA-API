@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Vita.Planning.Application.DTOs;
 using Vita.Planning.Application.Interfaces;
@@ -51,7 +51,20 @@ public sealed class UsersController : ControllerBase
                     })
                     .FirstOrDefault(),
                 u.IsActive,
-                u.SourceLastSyncedAt
+                u.SourceLastSyncedAt,
+
+                // Served from the local read model, not Graph: this endpoint returns the
+                // whole roster and a Graph call per employee would make it unusable. Entra
+                // stays the authority — the read model is refreshed on every classification
+                // read/write and by the reconciliation job.
+                u.PrimaryFaglighed,
+                u.Profession,
+                SecondaryFagligheder = _dbContext.UserSecondaryFagligheder
+                    .AsNoTracking()
+                    .Where(s => s.EmployeeId == u.EmployeeId)
+                    .OrderBy(s => s.Faglighed)
+                    .Select(s => s.Faglighed)
+                    .ToList()
             })
             .ToListAsync(cancellationToken);
 
@@ -84,7 +97,20 @@ public sealed class UsersController : ControllerBase
                     })
                     .FirstOrDefault(),
                 u.IsActive,
-                u.SourceLastSyncedAt
+                u.SourceLastSyncedAt,
+
+                // Served from the local read model, not Graph: this endpoint returns the
+                // whole roster and a Graph call per employee would make it unusable. Entra
+                // stays the authority — the read model is refreshed on every classification
+                // read/write and by the reconciliation job.
+                u.PrimaryFaglighed,
+                u.Profession,
+                SecondaryFagligheder = _dbContext.UserSecondaryFagligheder
+                    .AsNoTracking()
+                    .Where(s => s.EmployeeId == u.EmployeeId)
+                    .OrderBy(s => s.Faglighed)
+                    .Select(s => s.Faglighed)
+                    .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
 

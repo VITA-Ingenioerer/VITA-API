@@ -349,8 +349,15 @@ public sealed class ProjectWorkspaceProvisioningClient : IProjectWorkspaceProvis
         string userId,
         CancellationToken cancellationToken)
     {
+        // directoryObjects/{id} requires the member's actual AAD object ID —
+        // the caller only has the user's UPN/email, so it must be resolved
+        // via Graph first (same as CreateGroupAsync already does for the
+        // owner). Posting the $ref with a UPN in that slot always fails.
+        var objectId = await LookupUserObjectIdAsync(accessToken, userId, cancellationToken)
+            ?? throw new InvalidOperationException($"Could not resolve '{userId}' to an Entra ID object ID.");
+
         var url = $"https://graph.microsoft.com/v1.0/groups/{Uri.EscapeDataString(groupId)}/members/$ref";
-        var json = $$"""{"@odata.id": "https://graph.microsoft.com/v1.0/directoryObjects/{{userId}}"}""";
+        var json = $$"""{"@odata.id": "https://graph.microsoft.com/v1.0/directoryObjects/{{objectId}}"}""";
 
         using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url);
         requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
