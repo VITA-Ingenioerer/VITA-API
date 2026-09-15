@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vita.Planning.Application.DTOs;
 
@@ -86,7 +86,8 @@ public sealed class CreateOfferRequest
     public bool IsAbsence { get; set; }
     public bool IsInternal { get; set; }
     public bool IsProbableCase { get; set; }
-    public bool IsVisibleInPlanner { get; set; }
+    // Defaults to true: a caller that omits the flag means "no opinion", not "hide it".
+    public bool IsVisibleInPlanner { get; set; } = true;
     public bool DailyPlanningEnabled { get; set; }
     public decimal? EntrepriseSum { get; set; }
 

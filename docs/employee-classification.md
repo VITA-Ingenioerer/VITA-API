@@ -230,37 +230,62 @@ Two consequences worth remembering:
   features already work, so both grants are in place — but a future schema change that adds
   a new schema or object type may need permissions checked for both.
 
-## Known taxonomy problems (as of 2026-09-14)
+## Taxonomy
 
-Read live from the tenant. These are **data** issues in Entra, not code issues, and the
-options endpoint will surface whatever is there.
+Cleaned up 2026-09-14. `PrimaryFaglighed` and `SecondaryFagligheder` now hold the **same 17
+active values**, so a faglighed can be held as either primary or secondary:
 
-**`VITA.PrimaryFaglighed` (21 values) contains duplicates and strays:**
+```text
+Anlæg                    Energi og indeklima            Projekterings- og fagledelse
+Brand                    Fundering, havne og geoteknik  Projektledelse
+Byggeledelse             HVAC                           Regnvandshåndtering og afløbsteknik
+Bygherrerådgivning       IKT og BIM                     Vej
+Bæredygtighed            Konstruktioner
+Certificeret statiker    El
+Commissioning
+```
 
-- `EL` and `El` — case-variant duplicates
-- `Konstruktioner` and `Konstruktioner ` — the second has a trailing space
-- `Projektleder` — a stray; `Projektledelse` already exists
-- `Afløb` — overlaps `Regnvandshåndtering og afløbsteknik`
+### Entra cannot delete allowed values
 
-**`VITA.SecondaryFagligheder` (19 values) is a different list:**
+`DELETE` on an `allowedValue` is refused outright:
 
-- **`Brand` is missing** — nobody can hold Brand as a secondary faglighed
-- has `VVS`, `IKT`, `BIM`, which Primary does not
+```text
+Data contract version does not allow 'Delete' operations against instances
+of resource 'AllowedValue'.
+```
 
-Because both attributes are `usePreDefinedValuesOnly: true`, Graph rejects anything off the
-list, so the backend validates **each attribute against its own list** rather than a merged
-taxonomy. Aligning the two lists is an Entra cleanup task.
+Deactivation (`PATCH {"isActive": false}`) is the only route, and it is reversible. The
+options endpoint filters deactivated values out, so they never reach the Ressourceplan
+dropdowns — they remain visible, greyed out, in the Entra portal only.
 
-Note: Entra has no delete for predefined values — they can only be **deactivated**
-(`isActive: false`). The options endpoint already filters deactivated values out, so
-deactivating the strays is enough to clean up the dropdowns. Values already assigned to a
-user are not removed by deactivating the definition.
+These seven were deactivated as duplicates. None were assigned to any user, so nothing
+needed reassigning:
 
-**`VITA.Profession` has only two values:** `Ingeniør`, `Teknisk Tegner`. Profession is a
-required field on save, so anyone who is neither (installatør, brandrådgiver,
-bygningskonstruktør, byggeleder, økonomi/administration) **cannot be saved at all** until
-more values are added. Add the missing professions before rollout, or relax the requirement
-in `EmployeeIdentityService.Validate`.
+| Attribute | Deactivated | Superseded by |
+|---|---|---|
+| `PrimaryFaglighed` | `EL` | `El` |
+| `PrimaryFaglighed` | `Konstruktioner ` (trailing space) | `Konstruktioner` |
+| `PrimaryFaglighed` | `Projektleder` | `Projektledelse` |
+| `PrimaryFaglighed` | `Afløb` | `Regnvandshåndtering og afløbsteknik` |
+| `SecondaryFagligheder` | `VVS` | `HVAC` |
+| `SecondaryFagligheder` | `IKT` | `IKT og BIM` |
+| `SecondaryFagligheder` | `BIM` | `IKT og BIM` |
+
+`Brand` was added to `SecondaryFagligheder` on the same date.
+
+To add or retire a value later, do it in Entra — no deploy is needed, the options endpoint
+reads live (cached `OptionsCacheMinutes`, default 15).
+
+**Because the two lists are identical, the backend still validates each attribute against
+its own list.** They are separate Entra definitions and can drift apart again; validating
+against a merged list would let a value through that Graph then rejects.
+
+### Outstanding: Profession
+
+`VITA.Profession` has only `Ingeniør` and `Teknisk Tegner`. Profession is **required** on
+save, so anyone who is neither (installatør, bygningskonstruktør, brandrådgiver, byggeleder,
+økonomi/administration) cannot be saved until more values are added. Add them in Entra, or
+relax the requirement in `EmployeeIdentityService.Validate`.
 
 ## Validation rules
 

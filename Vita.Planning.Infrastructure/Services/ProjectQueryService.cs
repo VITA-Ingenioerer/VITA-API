@@ -179,7 +179,12 @@ public sealed class ProjectQueryService : IProjectQueryService
             IsAbsence = meta?.IsAbsence ?? false,
             IsInternal = meta?.IsInternal ?? false,
             IsProbableCase = meta?.IsProbableCase ?? false,
-            IsVisibleInPlanner = meta?.IsVisibleInPlanner ?? false,
+            // Absence of a metadata row means "not configured yet", not "hidden" — and
+            // 6000+ synced projects have no row. Defaulting to false made every one of
+            // them read as Nej, and because the admin UI loads this value into its draft
+            // and saves it straight back, it also wrote that false into any metadata row
+            // that was later created. Projects are plannable unless explicitly excluded.
+            IsVisibleInPlanner = meta?.IsVisibleInPlanner ?? true,
             DailyPlanningEnabled = meta?.DailyPlanningEnabled ?? false,
             Notes = meta?.Notes,
             SizeDescription = meta?.SizeDescription,

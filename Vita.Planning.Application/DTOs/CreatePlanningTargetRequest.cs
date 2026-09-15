@@ -24,5 +24,7 @@ public sealed class CreatePlanningTargetRequest
     public string? OfficeCode { get; set; }
 
     public bool IsActive { get; set; }
-    public bool IsPlannable { get; set; }
+    // Every other planning-target creation site already hardcodes true; this was the
+    // one path where omitting the flag produced a target the planner would never show.
+    public bool IsPlannable { get; set; } = true;
 }
