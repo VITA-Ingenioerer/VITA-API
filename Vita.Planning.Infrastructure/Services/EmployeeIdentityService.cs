@@ -352,13 +352,19 @@ public sealed class EmployeeIdentityService : IEmployeeIdentityService
             });
         }
 
-        // One transaction so a failure can't leave the employee with the new primary and
-        // the old secondary list.
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-
+        // The primary/profession update and the secondary delete+insert are all staged on
+        // the same change tracker, so this single SaveChangesAsync applies them in one
+        // implicit transaction — an employee can never end up with the new primary and the
+        // old secondary list.
+        //
+        // Deliberately NOT an explicit BeginTransactionAsync: the context is registered
+        // with EnableRetryOnFailure (see Program.cs), and SqlServerRetryingExecutionStrategy
+        // refuses user-initiated transactions outright — it cannot retry a block it does not
+        // own. An explicit transaction here threw
+        // "The configured execution strategy 'SqlServerRetryingExecutionStrategy' does not
+        // support user-initiated transactions" on every save. The implicit transaction is
+        // both retriable and sufficient.
         await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await transaction.CommitAsync(cancellationToken);
 
         return true;
     }
