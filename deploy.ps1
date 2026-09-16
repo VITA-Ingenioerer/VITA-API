@@ -38,7 +38,7 @@ if (-not $account) {
 Write-Host "Deploying commit $($local.Substring(0,7)) on '$branch' to $appName (subscription: $($account.name))" -ForegroundColor Cyan
 
 if (Test-Path $publishDir) { Remove-Item -Recurse -Force $publishDir }
-dotnet publish Vita.Planning.Api -c Release -o $publishDir
+dotnet publish Vita.Atlas.Api -c Release -o $publishDir
 
 if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
 Compress-Archive -Path "$publishDir/*" -DestinationPath $zipPath -Force

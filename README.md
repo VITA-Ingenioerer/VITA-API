@@ -1,4 +1,4 @@
-# Vita.Planning
+# Vita.Atlas
 
 Internal resource-planning and project-lifecycle API for Vita Ingeniørfirma. An ASP.NET Core
 (.NET 10) Web API that sits between **e-conomic** (ERP/time registration), **Microsoft 365**
@@ -26,12 +26,12 @@ Internal resource-planning and project-lifecycle API for Vita Ingeniørfirma. An
 
 | Project | Responsibility |
 |---|---|
-| `Vita.Planning.Api` | ASP.NET Core Web API — controllers, auth, middleware, DI wiring (`Program.cs`) |
-| `Vita.Planning.Application` | DTOs and service/client interfaces — no dependency on Infrastructure or Api |
-| `Vita.Planning.Infrastructure` | EF Core `DbContext` + entities, service implementations, external clients (e-conomic, Microsoft Graph, SharePoint, Virk, DAWA) |
-| `Vita.Planning.Domain` | Core domain types |
+| `Vita.Atlas.Api` | ASP.NET Core Web API — controllers, auth, middleware, DI wiring (`Program.cs`) |
+| `Vita.Atlas.Application` | DTOs and service/client interfaces — no dependency on Infrastructure or Api |
+| `Vita.Atlas.Infrastructure` | EF Core `DbContext` + entities, service implementations, external clients (e-conomic, Microsoft Graph, SharePoint, Virk, DAWA) |
+| `Vita.Atlas.Domain` | Core domain types |
 
-Solution file: [`Vita.Planning.slnx`](Vita.Planning.slnx).
+Solution file: [`Vita.Atlas.slnx`](Vita.Atlas.slnx).
 
 The frontend (SharePoint Framework web parts for resource planning and time entry) lives in
 the sibling `vita-ressourceplan` repository, not here.
@@ -39,7 +39,7 @@ the sibling `vita-ressourceplan` repository, not here.
 ## Requirements
 
 - .NET 10 SDK
-- SQL Server reachable via the `PlanningDatabase` connection string
+- SQL Server reachable via the `AtlasDatabase` connection string
 - An Entra ID (Azure AD) app registration for bearer-token auth, exposing a `Planner.Access`
   scope (general API access) and a `Planner.Admin` scope (observability/history endpoints)
 - e-conomic API credentials and a Microsoft Graph app registration (client ID/secret) for
@@ -47,7 +47,7 @@ the sibling `vita-ressourceplan` repository, not here.
 
 ## Configuration
 
-`Vita.Planning.Api/appsettings.json` is checked into source control and holds every
+`Vita.Atlas.Api/appsettings.json` is checked into source control and holds every
 **non-secret** setting (SharePoint site/drive IDs, e-conomic base URL, CORS origins, capacity
 defaults, AzureAd/Graph tenant & client IDs, etc.) — this is deliberate: none of those values
 grant access on their own without an accompanying secret, so the app has a working baseline
@@ -58,7 +58,7 @@ Secrets locally, Azure App Service configuration when deployed — see below):
 
 | Key | What it is |
 |---|---|
-| `ConnectionStrings:PlanningDatabase` | SQL Server connection string (uses Azure AD auth, but still environment-specific) |
+| `ConnectionStrings:AtlasDatabase` | SQL Server connection string (uses Azure AD auth, but still environment-specific) |
 | `Economic:AppSecretToken` | e-conomic API app secret |
 | `Economic:AgreementGrantToken` | e-conomic API agreement grant token |
 | `Virk:Password` | Virk/CVR distribution service password |
@@ -71,10 +71,10 @@ in case you (or Visual Studio) recreate one locally.
 
 ## Running & debugging locally (Visual Studio)
 
-The project already has a `UserSecretsId` wired into `Vita.Planning.Api.csproj`, so secrets
+The project already has a `UserSecretsId` wired into `Vita.Atlas.Api.csproj`, so secrets
 live outside the repo in your user profile, not in a project file.
 
-1. In **Solution Explorer**, right-click `Vita.Planning.Api` → **Manage User Secrets**. This
+1. In **Solution Explorer**, right-click `Vita.Atlas.Api` → **Manage User Secrets**. This
    opens `secrets.json` (physically at
    `%APPDATA%\Microsoft\UserSecrets\b7e6a5b2-9c0e-4a7f-9f2a-1e6d6d6a2f3e\secrets.json` on
    Windows — outside the repo, never committed).
@@ -83,7 +83,7 @@ live outside the repo in your user profile, not in a project file.
    ```json
    {
      "ConnectionStrings": {
-       "PlanningDatabase": "Server=tcp:vita-bigben-dev.database.windows.net,1433;Database=vita-bigben-dev;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+       "AtlasDatabase": "Server=tcp:vita-bigben-dev.database.windows.net,1433;Database=vita-bigben-dev;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
      },
      "Economic": {
        "AppSecretToken": "...",
@@ -109,14 +109,14 @@ live outside the repo in your user profile, not in a project file.
 Equivalent from the CLI:
 
 ```bash
-dotnet user-secrets set "ConnectionStrings:PlanningDatabase" "..." --project Vita.Planning.Api
-dotnet user-secrets set "Economic:AppSecretToken" "..." --project Vita.Planning.Api
-dotnet user-secrets set "Economic:AgreementGrantToken" "..." --project Vita.Planning.Api
-dotnet user-secrets set "Virk:Password" "..." --project Vita.Planning.Api
-dotnet user-secrets set "MicrosoftGraph:ClientSecret" "..." --project Vita.Planning.Api
+dotnet user-secrets set "ConnectionStrings:AtlasDatabase" "..." --project Vita.Atlas.Api
+dotnet user-secrets set "Economic:AppSecretToken" "..." --project Vita.Atlas.Api
+dotnet user-secrets set "Economic:AgreementGrantToken" "..." --project Vita.Atlas.Api
+dotnet user-secrets set "Virk:Password" "..." --project Vita.Atlas.Api
+dotnet user-secrets set "MicrosoftGraph:ClientSecret" "..." --project Vita.Atlas.Api
 
-dotnet build Vita.Planning.slnx
-dotnet run --project Vita.Planning.Api
+dotnet build Vita.Atlas.slnx
+dotnet run --project Vita.Atlas.Api
 ```
 
 A basic health check is exposed at `/health` and `/ping` if you just want to confirm the API
@@ -133,21 +133,21 @@ files) so VS Code's debugger works the same way F5 does in Visual Studio.
 folder, set your User Secrets once (same `dotnet user-secrets set ...` commands as above — they
 aren't tied to Visual Studio, they live in `%APPDATA%\Microsoft\UserSecrets\...` regardless of
 which editor set them), then press **F5**. It runs the `build` task, launches
-`Vita.Planning.Api.dll` with `ASPNETCORE_ENVIRONMENT=Development`, and opens the browser at
+`Vita.Atlas.Api.dll` with `ASPNETCORE_ENVIRONMENT=Development`, and opens the browser at
 `https://localhost:60826` once the server reports it's listening. Breakpoints, watch, step-through
 all work the same as in Visual Studio.
 
 **Rebuilding from the terminal:**
 
 ```bash
-dotnet clean Vita.Planning.slnx
-dotnet build Vita.Planning.slnx
+dotnet clean Vita.Atlas.slnx
+dotnet build Vita.Atlas.slnx
 ```
 
 or for auto-rebuild-on-save (VS Code's rough equivalent of Hot Reload):
 
 ```bash
-dotnet watch run --project Vita.Planning.Api
+dotnet watch run --project Vita.Atlas.Api
 ```
 
 **Publishing to Azure from the terminal.** There's no CI/CD pipeline — deploys are a deliberate,
@@ -196,7 +196,7 @@ them up for `vita-planning-api-prod` too if you haven't yet (it's a separate App
 ## App Service configuration (secrets)
 
 Visual Studio's **Publish** button (via the `vita-planning-api-dev - Web Deploy.pubxml` under
-`Vita.Planning.Api/Properties/PublishProfiles/`) still works mechanically too — but whichever way
+`Vita.Atlas.Api/Properties/PublishProfiles/`) still works mechanically too — but whichever way
 code reaches an App Service, the deployed package no longer carries secrets with it (that's the
 point), so **each** App Service (`vita-planning-api-dev` *and* `vita-planning-api-prod`) needs the
 same five secret keys configured independently:
@@ -209,7 +209,7 @@ same five secret keys configured independently:
 
    | Name | Value |
    |---|---|
-   | `ConnectionStrings__PlanningDatabase` | connection string for that environment's database |
+   | `ConnectionStrings__AtlasDatabase` | connection string for that environment's database |
    | `Economic__AppSecretToken` | e-conomic app secret |
    | `Economic__AgreementGrantToken` | e-conomic agreement grant token |
    | `Virk__Password` | Virk service password |

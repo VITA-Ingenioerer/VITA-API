@@ -46,7 +46,7 @@ NEVER      SQL → Graph
 
 ## What was added
 
-**Database** — `Vita.Planning.Infrastructure/Sql/2026-09-employee-classification.sql`
+**Database** — `Vita.Atlas.Infrastructure/Sql/2026-09-employee-classification.sql`
 (idempotent, must be run by hand; this repo has no EF migrations):
 
 - `ext.users.primary_faglighed nvarchar(200) NULL`
@@ -114,7 +114,7 @@ separate app registrations later without a code change.
 To override:
 
 ```bash
-dotnet user-secrets set "EntraClassification:ClientSecret" "<secret>" --project Vita.Planning.Api
+dotnet user-secrets set "EntraClassification:ClientSecret" "<secret>" --project Vita.Atlas.Api
 ```
 
 ### Who may write

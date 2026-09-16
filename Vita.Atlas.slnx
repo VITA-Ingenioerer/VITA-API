@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Vita.Atlas.Api/Vita.Atlas.Api.csproj" />
+  <Project Path="Vita.Atlas.Application/Vita.Atlas.Application.csproj" Id="b7c16852-3965-4563-ae44-a4f1f5a45de1" />
+  <Project Path="Vita.Atlas.Domain/Vita.Atlas.Domain.csproj" Id="c02a6a61-5828-4a9e-8da6-65b27efe3489" />
+  <Project Path="Vita.Atlas.Infrastructure/Vita.Atlas.Infrastructure.csproj" Id="04407a42-4ec1-47cf-b984-6536fe6cf722" />
+</Solution>
