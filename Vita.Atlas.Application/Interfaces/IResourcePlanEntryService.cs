@@ -40,4 +40,12 @@ public interface IResourcePlanEntryService
         AutoDistributeResourcePlanEntriesRequest request,
         CallerInfo caller,
         CancellationToken cancellationToken = default);
+    Task<ChangeResourcePlanEntriesActivityResult> ChangeActivityAsync(
+        ChangeResourcePlanEntriesActivityRequest request,
+        CallerInfo caller,
+        CancellationToken cancellationToken = default);
+    Task<ChangeResourcePlanEntriesTargetResult> ChangeTargetAsync(
+        ChangeResourcePlanEntriesTargetRequest request,
+        CallerInfo caller,
+        CancellationToken cancellationToken = default);
 }

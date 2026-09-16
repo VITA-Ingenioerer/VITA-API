@@ -56,6 +56,7 @@ public sealed class UsersController : ControllerBase
                     .FirstOrDefault(),
                 u.IsActive,
                 u.SourceLastSyncedAt,
+                u.Note,
 
                 // Served from the local read model, not Graph: this endpoint returns the
                 // whole roster and a Graph call per employee would make it unusable. Entra
@@ -102,6 +103,7 @@ public sealed class UsersController : ControllerBase
                     .FirstOrDefault(),
                 u.IsActive,
                 u.SourceLastSyncedAt,
+                u.Note,
 
                 // Served from the local read model, not Graph: this endpoint returns the
                 // whole roster and a Graph call per employee would make it unusable. Entra
@@ -124,6 +126,29 @@ public sealed class UsersController : ControllerBase
         }
 
         return Ok(user);
+    }
+
+    // The note is the one thing on a user that is ours to write — everything else on the row
+    // comes from e-conomic or Graph and is replaced on the next sync. Hence a field-specific
+    // endpoint rather than a general user update that would invite editing synced columns.
+    [HttpPut("{employeeId:int}/note")]
+    public async Task<IActionResult> UpdateNote(
+        int employeeId,
+        [FromBody] UpdateUserNoteRequest request,
+        CancellationToken cancellationToken)
+    {
+        var user = await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.EmployeeId == employeeId, cancellationToken);
+
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        user.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { user.EmployeeId, user.Note });
     }
 
     [HttpGet("{employeeId:int}/resource-plan")]

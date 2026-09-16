@@ -78,6 +78,8 @@ public sealed class UpsertProjectMetadataRequest
     public int? ConsultantFormId { get; set; }
     public int? ProjectTypeId { get; set; }
     public int? ProjectRoleId { get; set; }
+    /// <summary>VITA's project owner, by employee number — ours, unlike the e-conomic responsible employee.</summary>
+    public int? ProjectOwnerEmployeeNumber { get; set; }
     public int? ComplexityLevelId { get; set; }
 
     public IReadOnlyList<int> SegmentIds { get; set; } = [];

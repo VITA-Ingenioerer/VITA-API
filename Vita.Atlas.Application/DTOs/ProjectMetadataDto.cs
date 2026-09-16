@@ -52,6 +52,8 @@ public sealed class ProjectMetadataDto
     public string? ProjectTypeName { get; set; }
     public int? ProjectRoleId { get; set; }
     public string? ProjectRoleName { get; set; }
+    /// <summary>VITA's project owner, by employee number — ours, unlike the e-conomic responsible employee.</summary>
+    public int? ProjectOwnerEmployeeNumber { get; set; }
     public int? ComplexityLevelId { get; set; }
     public string? ComplexityLevelName { get; set; }
 

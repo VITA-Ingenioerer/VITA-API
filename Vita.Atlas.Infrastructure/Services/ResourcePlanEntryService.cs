@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq.Expressions;
+using System.Text.Json;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
 using Vita.Atlas.Infrastructure.Data;
@@ -894,6 +895,542 @@ public sealed class ResourcePlanEntryService : IResourcePlanEntryService
                 Entries = entries
             };
         });
+    }
+
+    public async Task<ChangeResourcePlanEntriesActivityResult> ChangeActivityAsync(
+        ChangeResourcePlanEntriesActivityRequest request,
+        CallerInfo caller,
+        CancellationToken cancellationToken = default)
+    {
+        var fromActivityId = request.FromProjectActivityId;
+        var toActivityId = request.ToProjectActivityId;
+
+        if (fromActivityId == toActivityId)
+        {
+            throw new InvalidOperationException("The entries are already on that activity.");
+        }
+
+        var strategy = _dbContext.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            var resourcePlan = await RequireResourcePlanAsync(request.ResourcePlanId, cancellationToken);
+            await RequirePlanningTargetAsync(request.PlanningTargetId, cancellationToken);
+
+            // Only the destination is validated. The source activity deliberately isn't:
+            // moving hours off an activity that has since been unassigned from the project
+            // is exactly the case this endpoint exists for.
+            await RequireValidProjectActivityAsync(toActivityId, request.PlanningTargetId, cancellationToken);
+
+            // Both sides of the move are fetched in one go and split in memory. Nullable
+            // equality on the activity id reads the same for the "Ikke-tildelt" bucket as
+            // for a real activity, which it would not in a translated WHERE clause.
+            var lineEntries = await _dbContext.ResourcePlanEntries
+                .Where(x => x.ResourcePlanId == request.ResourcePlanId)
+                .Where(x => x.PlanningTargetId == request.PlanningTargetId)
+                .OrderBy(x => x.PlanDate)
+                .ThenBy(x => x.ResourcePlanEntryId)
+                .ToListAsync(cancellationToken);
+
+            var sources = lineEntries.Where(x => x.ProjectActivityId == fromActivityId).ToList();
+
+            if (sources.Count == 0)
+            {
+                // Nothing on that activity — the caller's view is simply stale. Not an
+                // error: the line already looks the way they asked for.
+                return new ChangeResourcePlanEntriesActivityResult();
+            }
+
+            var destinationsByDate = lineEntries
+                .Where(x => x.ProjectActivityId == toActivityId)
+                .ToDictionary(x => x.PlanDate);
+
+            var correlationId = _correlationContext.CorrelationId;
+            var actor = ResolveActor(caller);
+            var now = DateTime.UtcNow;
+
+            var historyRecords = new List<RecordResourcePlanEntryHistoryRequest>();
+            var touchedIds = new List<int>();
+            var movedCount = 0;
+            var mergedCount = 0;
+            var movedHours = 0m;
+
+            foreach (var source in sources)
+            {
+                movedHours += source.Hours;
+
+                if (destinationsByDate.TryGetValue(source.PlanDate, out var destination))
+                {
+                    var merged = MergeEntryInto(destination, source, actor, now);
+
+                    touchedIds.Add(destination.ResourcePlanEntryId);
+                    historyRecords.Add(BuildHistoryRecord(
+                        destination, resourcePlan, merged.OldHours, destination.Hours,
+                        merged.OldDescription, destination.Description,
+                        merged.OldIsManualOverride, destination.IsManualOverride,
+                        "Updated", "ActivityMerged", caller, correlationId));
+
+                    var sourceRecord = BuildHistoryRecord(
+                        source, resourcePlan, source.Hours, null,
+                        source.Description, null,
+                        source.IsManualOverride, null,
+                        "Deleted", "ActivityMerged", caller, correlationId);
+
+                    // The row is gone by the time history is written, so the id lives in the
+                    // metadata instead of in a column that is meant to point at a live entry.
+                    sourceRecord.ResourcePlanEntryId = null;
+                    sourceRecord.MetadataJson = JsonSerializer.Serialize(new
+                    {
+                        MergedFromResourcePlanEntryId = source.ResourcePlanEntryId,
+                        MergedIntoResourcePlanEntryId = destination.ResourcePlanEntryId,
+                        FromProjectActivityId = fromActivityId,
+                        ToProjectActivityId = toActivityId
+                    });
+                    historyRecords.Add(sourceRecord);
+
+                    _dbContext.ResourcePlanEntries.Remove(source);
+                    mergedCount++;
+                    continue;
+                }
+
+                source.ProjectActivityId = toActivityId;
+                source.UpdatedBy = actor;
+                source.UpdatedAt = now;
+
+                touchedIds.Add(source.ResourcePlanEntryId);
+
+                // Hours don't change when a line is re-pointed, so old and new are the same
+                // here on purpose — the move itself is what the metadata records.
+                var moveRecord = BuildHistoryRecord(
+                    source, resourcePlan, source.Hours, source.Hours,
+                    source.Description, source.Description,
+                    source.IsManualOverride, source.IsManualOverride,
+                    "Updated", "ActivityChanged", caller, correlationId);
+
+                moveRecord.MetadataJson = JsonSerializer.Serialize(new
+                {
+                    FromProjectActivityId = fromActivityId,
+                    ToProjectActivityId = toActivityId
+                });
+                historyRecords.Add(moveRecord);
+
+                movedCount++;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            foreach (var record in historyRecords)
+            {
+                await _historyService.RecordAsync(record, cancellationToken);
+            }
+
+            await _changeLogService.RecordChangeAsync(new RecordEntityChangeRequest
+            {
+                EventType = "ResourcePlanEntriesActivityChanged",
+                EventTitle = "Ressourceplan-linje flyttet til anden aktivitet",
+                EntityType = "ResourcePlanDistribution",
+                EntityId = correlationId.ToString(),
+                PlanningTargetId = request.PlanningTargetId,
+                OldValue = DescribeActivity(fromActivityId),
+                NewValue = DescribeActivity(toActivityId),
+                NewSnapshot = new
+                {
+                    request.ResourcePlanId,
+                    request.PlanningTargetId,
+                    FromProjectActivityId = fromActivityId,
+                    ToProjectActivityId = toActivityId,
+                    MovedCount = movedCount,
+                    MergedCount = mergedCount,
+                    MovedHours = movedHours,
+                    TouchedResourcePlanEntryIds = touchedIds
+                },
+                ChangeReason = "ActivityChanged",
+                Caller = caller,
+                CorrelationId = correlationId,
+                SourceModule = "ResourcePlanEntriesController"
+            }, cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+
+            var entries = await _dbContext.ResourcePlanEntries
+                .AsNoTracking()
+                .Where(x => touchedIds.Contains(x.ResourcePlanEntryId))
+                .OrderBy(x => x.PlanDate)
+                .ThenBy(x => x.ResourcePlanEntryId)
+                .Select(MapToDtoExpression())
+                .ToListAsync(cancellationToken);
+
+            return new ChangeResourcePlanEntriesActivityResult
+            {
+                MovedCount = movedCount,
+                MergedCount = mergedCount,
+                MovedHours = movedHours,
+                Entries = entries
+            };
+        });
+    }
+
+    public async Task<ChangeResourcePlanEntriesTargetResult> ChangeTargetAsync(
+        ChangeResourcePlanEntriesTargetRequest request,
+        CallerInfo caller,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.FromPlanningTargetId == request.ToPlanningTargetId)
+        {
+            throw new InvalidOperationException("The entries are already on that project.");
+        }
+
+        var strategy = _dbContext.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            var resourcePlan = await RequireResourcePlanAsync(request.ResourcePlanId, cancellationToken);
+
+            var targets = await _dbContext.PlanningTargets
+                .AsNoTracking()
+                .Where(x => x.PlanningTargetId == request.FromPlanningTargetId ||
+                            x.PlanningTargetId == request.ToPlanningTargetId)
+                .ToDictionaryAsync(x => x.PlanningTargetId, cancellationToken);
+
+            if (!targets.TryGetValue(request.FromPlanningTargetId, out var fromTarget))
+            {
+                throw new KeyNotFoundException($"Planning target '{request.FromPlanningTargetId}' was not found.");
+            }
+
+            if (!targets.TryGetValue(request.ToPlanningTargetId, out var toTarget))
+            {
+                throw new KeyNotFoundException($"Planning target '{request.ToPlanningTargetId}' was not found.");
+            }
+
+            // The source only has to exist: a project closed to new planning can still be
+            // holding hours that need moving off it, which is half the point of this call.
+            // The destination is the one that has to be open.
+            if (!toTarget.IsActive || !toTarget.IsPlannable)
+            {
+                throw new InvalidOperationException(
+                    $"Planning target '{toTarget.PlanningTargetId}' was not found or is not plannable.");
+            }
+
+            if (!fromTarget.ExtProjectNumber.HasValue || !toTarget.ExtProjectNumber.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Hours can only be moved between projects — offers and internal planning codes belong to no project family.");
+            }
+
+            var fromProjectNumber = fromTarget.ExtProjectNumber.Value;
+            var toProjectNumber = toTarget.ExtProjectNumber.Value;
+
+            var fromFamilyHead = await ResolveProjectFamilyHeadAsync(fromProjectNumber, cancellationToken);
+            var toFamilyHead = await ResolveProjectFamilyHeadAsync(toProjectNumber, cancellationToken);
+
+            if (fromFamilyHead is null || toFamilyHead is null || fromFamilyHead != toFamilyHead)
+            {
+                throw new InvalidOperationException(
+                    $"Project {toProjectNumber} is not in the same project family as {fromProjectNumber}. " +
+                    "Hours can only be moved between a main project and its subprojects.");
+            }
+
+            var sources = await _dbContext.ResourcePlanEntries
+                .Where(x => x.ResourcePlanId == request.ResourcePlanId)
+                .Where(x => x.PlanningTargetId == request.FromPlanningTargetId)
+                .OrderBy(x => x.PlanDate)
+                .ThenBy(x => x.ResourcePlanEntryId)
+                .ToListAsync(cancellationToken);
+
+            if (sources.Count == 0)
+            {
+                // Nothing planned on that project — the caller's view is stale, not wrong.
+                return new ChangeResourcePlanEntriesTargetResult();
+            }
+
+            var activityMap = await BuildActivityMapAsync(sources, toProjectNumber, cancellationToken);
+
+            // Keyed by what makes a destination row unique, so both an existing row and one
+            // re-pointed earlier in this loop are found the same way.
+            var destinationByKey = (await _dbContext.ResourcePlanEntries
+                    .Where(x => x.ResourcePlanId == request.ResourcePlanId)
+                    .Where(x => x.PlanningTargetId == request.ToPlanningTargetId)
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(x => (x.PlanDate, x.ProjectActivityId));
+
+            var correlationId = _correlationContext.CorrelationId;
+            var actor = ResolveActor(caller);
+            var now = DateTime.UtcNow;
+
+            var historyRecords = new List<RecordResourcePlanEntryHistoryRequest>();
+            var touchedIds = new List<int>();
+            var movedCount = 0;
+            var mergedCount = 0;
+            var movedHours = 0m;
+            var unmappedEntryCount = 0;
+
+            foreach (var source in sources)
+            {
+                var sourceActivityId = source.ProjectActivityId;
+                var mappedActivityId = sourceActivityId.HasValue
+                    ? activityMap.MappedBySourceId[sourceActivityId.Value]
+                    : null;
+
+                if (sourceActivityId.HasValue && mappedActivityId is null)
+                {
+                    unmappedEntryCount++;
+                }
+
+                movedHours += source.Hours;
+
+                var metadataJson = JsonSerializer.Serialize(new
+                {
+                    FromPlanningTargetId = request.FromPlanningTargetId,
+                    ToPlanningTargetId = request.ToPlanningTargetId,
+                    FromProjectNumber = fromProjectNumber,
+                    ToProjectNumber = toProjectNumber,
+                    FromProjectActivityId = sourceActivityId,
+                    ToProjectActivityId = mappedActivityId
+                });
+
+                if (destinationByKey.TryGetValue((source.PlanDate, mappedActivityId), out var destination))
+                {
+                    var merged = MergeEntryInto(destination, source, actor, now);
+
+                    touchedIds.Add(destination.ResourcePlanEntryId);
+                    var destinationRecord = BuildHistoryRecord(
+                        destination, resourcePlan, merged.OldHours, destination.Hours,
+                        merged.OldDescription, destination.Description,
+                        merged.OldIsManualOverride, destination.IsManualOverride,
+                        "Updated", "TargetMerged", caller, correlationId);
+                    destinationRecord.MetadataJson = metadataJson;
+                    historyRecords.Add(destinationRecord);
+
+                    var sourceRecord = BuildHistoryRecord(
+                        source, resourcePlan, source.Hours, null,
+                        source.Description, null,
+                        source.IsManualOverride, null,
+                        "Deleted", "TargetMerged", caller, correlationId);
+
+                    // The row is gone by the time history is written, so its id lives in the
+                    // metadata rather than in a column meant to point at a live entry.
+                    sourceRecord.ResourcePlanEntryId = null;
+                    sourceRecord.MetadataJson = metadataJson;
+                    historyRecords.Add(sourceRecord);
+
+                    _dbContext.ResourcePlanEntries.Remove(source);
+                    mergedCount++;
+                    continue;
+                }
+
+                source.PlanningTargetId = request.ToPlanningTargetId;
+                source.ProjectActivityId = mappedActivityId;
+                source.UpdatedBy = actor;
+                source.UpdatedAt = now;
+
+                // Index the row under its new key: two source activities with no counterpart
+                // both collapse onto "Ikke-tildelt", and the second one has to find the first
+                // here and merge rather than trip the unique index.
+                destinationByKey[(source.PlanDate, mappedActivityId)] = source;
+
+                touchedIds.Add(source.ResourcePlanEntryId);
+
+                // Hours don't change when a line is re-pointed, so old and new match on
+                // purpose — the move itself is what the metadata records.
+                var moveRecord = BuildHistoryRecord(
+                    source, resourcePlan, source.Hours, source.Hours,
+                    source.Description, source.Description,
+                    source.IsManualOverride, source.IsManualOverride,
+                    "Updated", "TargetChanged", caller, correlationId);
+                moveRecord.MetadataJson = metadataJson;
+                historyRecords.Add(moveRecord);
+
+                movedCount++;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            foreach (var record in historyRecords)
+            {
+                await _historyService.RecordAsync(record, cancellationToken);
+            }
+
+            await _changeLogService.RecordChangeAsync(new RecordEntityChangeRequest
+            {
+                EventType = "ResourcePlanEntriesTargetChanged",
+                EventTitle = "Ressourceplan-linje flyttet til andet projekt",
+                EntityType = "ResourcePlanDistribution",
+                EntityId = correlationId.ToString(),
+                PlanningTargetId = request.ToPlanningTargetId,
+                OldValue = $"Projekt {fromProjectNumber}",
+                NewValue = $"Projekt {toProjectNumber}",
+                NewSnapshot = new
+                {
+                    request.ResourcePlanId,
+                    FromPlanningTargetId = request.FromPlanningTargetId,
+                    ToPlanningTargetId = request.ToPlanningTargetId,
+                    FromProjectNumber = fromProjectNumber,
+                    ToProjectNumber = toProjectNumber,
+                    MovedCount = movedCount,
+                    MergedCount = mergedCount,
+                    MovedHours = movedHours,
+                    UnmappedActivityEntryCount = unmappedEntryCount,
+                    UnmappedActivityNumbers = activityMap.UnmappedActivityNumbers,
+                    TouchedResourcePlanEntryIds = touchedIds
+                },
+                ChangeReason = "TargetChanged",
+                Caller = caller,
+                CorrelationId = correlationId,
+                SourceModule = "ResourcePlanEntriesController"
+            }, cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+
+            var entries = await _dbContext.ResourcePlanEntries
+                .AsNoTracking()
+                .Where(x => touchedIds.Contains(x.ResourcePlanEntryId))
+                .OrderBy(x => x.PlanDate)
+                .ThenBy(x => x.ResourcePlanEntryId)
+                .Select(MapToDtoExpression())
+                .ToListAsync(cancellationToken);
+
+            return new ChangeResourcePlanEntriesTargetResult
+            {
+                MovedCount = movedCount,
+                MergedCount = mergedCount,
+                MovedHours = movedHours,
+                UnmappedActivityEntryCount = unmappedEntryCount,
+                UnmappedActivityNumbers = activityMap.UnmappedActivityNumbers,
+                Entries = entries
+            };
+        });
+    }
+
+    private sealed record ProjectActivityMap(
+        IReadOnlyDictionary<int, int?> MappedBySourceId,
+        IReadOnlyList<int> UnmappedActivityNumbers);
+
+    // Activities are project-scoped: ext.project_activities holds one row per project, so a
+    // project activity id from one project means nothing on another. The catalog activity
+    // number behind it does, and that is what the two sides are matched on. An activity the
+    // destination project doesn't carry maps to null — the "Ikke-tildelt" bucket — so the
+    // hours still land instead of the whole move failing.
+    private async Task<ProjectActivityMap> BuildActivityMapAsync(
+        IReadOnlyList<ResourcePlanEntry> sources,
+        int toProjectNumber,
+        CancellationToken cancellationToken)
+    {
+        var sourceActivityIds = sources
+            .Where(x => x.ProjectActivityId.HasValue)
+            .Select(x => x.ProjectActivityId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (sourceActivityIds.Count == 0)
+        {
+            return new ProjectActivityMap(new Dictionary<int, int?>(), []);
+        }
+
+        var sourceActivityNumbers = await _dbContext.ProjectActivities
+            .AsNoTracking()
+            .Where(x => sourceActivityIds.Contains(x.Number))
+            .ToDictionaryAsync(x => x.Number, x => x.ActivityNumber, cancellationToken);
+
+        var destinationActivities = await _dbContext.ProjectActivities
+            .AsNoTracking()
+            .Where(x => x.ProjectNumber == toProjectNumber)
+            .Select(x => new { x.Number, x.ActivityNumber })
+            .ToListAsync(cancellationToken);
+
+        // A project can carry the same catalog activity more than once; the lowest id keeps
+        // the choice deterministic rather than dependent on row order.
+        var destinationByActivityNumber = destinationActivities
+            .GroupBy(x => x.ActivityNumber)
+            .ToDictionary(group => group.Key, group => group.Min(x => x.Number));
+
+        var mapped = new Dictionary<int, int?>(sourceActivityIds.Count);
+        var unmapped = new SortedSet<int>();
+
+        foreach (var sourceActivityId in sourceActivityIds)
+        {
+            if (!sourceActivityNumbers.TryGetValue(sourceActivityId, out var activityNumber))
+            {
+                // The entry points at a project activity that no longer exists at all — there
+                // is no catalog number left to match on, so it lands unassigned.
+                mapped[sourceActivityId] = null;
+                continue;
+            }
+
+            if (destinationByActivityNumber.TryGetValue(activityNumber, out var destinationActivityId))
+            {
+                mapped[sourceActivityId] = destinationActivityId;
+                continue;
+            }
+
+            mapped[sourceActivityId] = null;
+            unmapped.Add(activityNumber);
+        }
+
+        return new ProjectActivityMap(mapped, [.. unmapped]);
+    }
+
+    private static string DescribeActivity(int? projectActivityId) =>
+        projectActivityId.HasValue ? $"Aktivitet {projectActivityId.Value}" : "Ikke-tildelt";
+
+    private readonly record struct MergedEntrySnapshot(decimal OldHours, string? OldDescription, bool OldIsManualOverride);
+
+    // Folds a source entry into an existing one on the same plan/target/date/activity. One
+    // row per that tuple is all the unique indexes allow, so a collision has to become a
+    // single row rather than two. Returns what the destination looked like first, for history.
+    private static MergedEntrySnapshot MergeEntryInto(
+        ResourcePlanEntry destination,
+        ResourcePlanEntry source,
+        string actor,
+        DateTime now)
+    {
+        var snapshot = new MergedEntrySnapshot(destination.Hours, destination.Description, destination.IsManualOverride);
+
+        destination.Hours += source.Hours;
+        // The destination keeps its own text; the source's only fills a blank.
+        destination.Description ??= source.Description;
+        // Hours that were hand-set stay hand-set once merged, or the next auto-distribute
+        // would quietly overwrite them.
+        destination.IsManualOverride = destination.IsManualOverride || source.IsManualOverride;
+        destination.UpdatedBy = actor;
+        destination.UpdatedAt = now;
+
+        return snapshot;
+    }
+
+    // Mirrors resolveFamilyHead in the planner's projectHierarchy.utils, including its
+    // priority order: a project that other projects actually point at heads its own family
+    // even when it carries a stale main_project_number of its own. Returns null for a
+    // project that belongs to no family at all.
+    private async Task<int?> ResolveProjectFamilyHeadAsync(int projectNumber, CancellationToken cancellationToken)
+    {
+        var project = await _dbContext.Projects
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.ProjectNumber == projectNumber, cancellationToken);
+
+        if (project is null)
+        {
+            return null;
+        }
+
+        var isReferencedAsMain = await _dbContext.Projects
+            .AsNoTracking()
+            .AnyAsync(x => x.MainProjectNumber == projectNumber && x.ProjectNumber != projectNumber, cancellationToken);
+
+        if (isReferencedAsMain)
+        {
+            return projectNumber;
+        }
+
+        if (project.MainProjectNumber.HasValue && project.MainProjectNumber.Value != projectNumber)
+        {
+            return project.MainProjectNumber.Value;
+        }
+
+        return project.IsMainProject ? projectNumber : null;
     }
 
     private static RecordResourcePlanEntryHistoryRequest BuildHistoryRecord(

@@ -22,6 +22,7 @@ public sealed class ProjectMetadataConfiguration : IEntityTypeConfiguration<Proj
         builder.Property(x => x.PlanningGroup).HasColumnName("planning_group").HasMaxLength(100);
         builder.Property(x => x.Phase).HasColumnName("phase").HasMaxLength(100);
         builder.Property(x => x.ProbabilityPercent).HasColumnName("probability_percent").HasPrecision(5, 2);
+        builder.Property(x => x.ProjectOwnerEmployeeNumber).HasColumnName("project_owner_employee_number");
         builder.Property(x => x.BudgetHours).HasColumnName("budget_hours").HasPrecision(18, 2);
         builder.Property(x => x.BudgetRevenue).HasColumnName("budget_revenue").HasPrecision(18, 2);
         builder.Property(x => x.LastPlanningReviewBy).HasColumnName("last_planning_review_by").HasMaxLength(255);

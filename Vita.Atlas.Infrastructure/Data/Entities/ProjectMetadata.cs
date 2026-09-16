@@ -155,6 +155,14 @@ public sealed class ProjectMetadata
     [Column("project_role_id")]
     public int? ProjectRoleId { get; set; }
 
+    /// <summary>
+    /// VITA's project owner, by e-conomic employee number. Distinct from the project's
+    /// responsible employee (the projektleder), which e-conomic owns and we only mirror —
+    /// this one is ours to set.
+    /// </summary>
+    [Column("project_owner_employee_number")]
+    public int? ProjectOwnerEmployeeNumber { get; set; }
+
     [Column("complexity_level_id")]
     public int? ComplexityLevelId { get; set; }
 

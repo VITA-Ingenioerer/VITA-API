@@ -11,6 +11,7 @@ public interface IProjectQueryService
         bool? isClosed = null,
         bool? isBarred = null,
         string? dawaId = null,
+        bool includeLastResourcePlanActivity = false,
         CancellationToken cancellationToken = default);
     Task<ProjectDetailsDto?> GetProjectByNumberAsync(int projectNumber, CancellationToken cancellationToken = default);
 }

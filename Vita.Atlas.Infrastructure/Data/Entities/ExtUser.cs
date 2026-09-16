@@ -43,6 +43,15 @@ public sealed class ExtUser
     [Column("primary_faglighed")]
     public string? PrimaryFaglighed { get; set; }
 
+    /// <summary>
+    /// Free-text note kept by the managers, ours rather than synced. The sync updates named
+    /// columns on an existing row, so this survives it — see UserSyncService for the one
+    /// branch that rebuilds a row and has to carry the note across explicitly.
+    /// </summary>
+    [MaxLength(1000)]
+    [Column("note")]
+    public string? Note { get; set; }
+
     [Column("profession")]
     public string? Profession { get; set; }
 

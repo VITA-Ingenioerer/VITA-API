@@ -11,6 +11,8 @@ public sealed class ProjectDetailsDto
     public int? ResponsibleEmployeeNumber { get; set; }
     public int? DepartmentNumber { get; set; }
     public int? StatusNumber { get; set; }
+    /// <summary>e-conomic's own status name, resolved from ext.project_statuses. Read-only here — e-conomic owns it.</summary>
+    public string? StatusName { get; set; }
     public string? Description { get; set; }
     public bool IsBarred { get; set; }
     public bool IsClosed { get; set; }
@@ -55,8 +57,15 @@ public sealed class ProjectDetailsDto
     public int? ConsultantFormId { get; set; }
     public int? ProjectTypeId { get; set; }
     public int? ProjectRoleId { get; set; }
+    /// <summary>VITA's project owner, by employee number — ours, unlike the e-conomic responsible employee.</summary>
+    public int? ProjectOwnerEmployeeNumber { get; set; }
     public int? ComplexityLevelId { get; set; }
     public string? ProjectArchiveUrl { get; set; }
+    /// <summary>
+    /// When hours on this project were last planned or changed — the newest create/update
+    /// stamp across its resource plan entries. Null means nobody has planned on it.
+    /// </summary>
+    public DateTime? LastResourcePlanActivityUtc { get; set; }
     public string? ProjectArchiveSiteId { get; set; }
     public string? ProjectArchiveDriveId { get; set; }
     public string? ProjectArchiveOutlookFolderId { get; set; }

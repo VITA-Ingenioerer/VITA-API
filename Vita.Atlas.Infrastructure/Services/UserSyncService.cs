@@ -214,7 +214,11 @@ public sealed class UserSyncService : IUserSyncService
                             EmployeeType = sourceUser.EmployeeType?.Trim(),
                             ManagerEmployeeId = resolvedManagerEmployeeId,
                             SourceLastSyncedAt = DateTime.UtcNow,
-                            IsActive = sourceUser.IsActive ?? true
+                            IsActive = sourceUser.IsActive ?? true,
+                            // This branch replaces the row rather than updating it, because the
+                            // employee id itself changed. The note is ours, not the source's, so
+                            // it has to be carried over by hand or it is lost with the old row.
+                            Note = existingUserByUserPrincipalName.Note
                         };
 
                         _db.Users.Add(replacementUser);

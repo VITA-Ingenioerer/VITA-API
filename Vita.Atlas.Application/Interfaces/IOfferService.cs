@@ -11,6 +11,7 @@ public interface IOfferService
         bool? deliveredToPq = null,
         string? dawaId = null,
         bool excludeFjern = false,
+        bool includeLastResourcePlanActivity = false,
         CancellationToken cancellationToken = default);
     Task<OfferDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<OfferDto> CreateAsync(

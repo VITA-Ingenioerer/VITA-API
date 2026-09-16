@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Vita.Atlas.Application;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
 using Vita.Atlas.Infrastructure.Data;
@@ -21,6 +22,7 @@ public sealed class ProjectQueryService : IProjectQueryService
         bool? isClosed = null,
         bool? isBarred = null,
         string? dawaId = null,
+        bool includeLastResourcePlanActivity = false,
         CancellationToken cancellationToken = default)
     {
         page = page < 1 ? 1 : page;
@@ -78,11 +80,36 @@ public sealed class ProjectQueryService : IProjectQueryService
                 IsMainProject = x.p.IsMainProject,
                 MainProjectNumber = x.p.MainProjectNumber,
                 ResponsibleEmployeeNumber = x.p.ResponsibleEmployeeNumber,
+                StatusNumber = x.p.StatusNumber,
+                ProjectArchiveUrl = x.meta == null ? null : x.meta.ProjectArchiveUrl,
                 IsClosed = x.p.IsClosed,
                 IsBarred = x.p.IsBarred,
                 DeliveryDate = x.p.DeliveryDate
             })
             .ToListAsync(cancellationToken);
+
+        // ext.project_statuses is a handful of rows, so the names are resolved in one
+        // extra round-trip and mapped in memory rather than complicating the filtered
+        // GroupJoin above with another outer join.
+        var statusNames = await GetStatusNamesAsync(cancellationToken);
+
+        // Opt-in because it is by far the most expensive part of this endpoint: it groups over
+        // the whole resource-plan-entry table (~270k rows) and measures around two seconds per
+        // page. Only the project admin list shows the column, while the time entry app pages
+        // through every project on load — it must not pay for a column it never renders.
+        var lastActivity = includeLastResourcePlanActivity
+            ? await GetLastResourcePlanActivityAsync(items.Select(x => x.ProjectNumber).ToList(), cancellationToken)
+            : [];
+
+        foreach (var item in items)
+        {
+            item.StatusName = item.StatusNumber.HasValue && statusNames.TryGetValue(item.StatusNumber.Value, out var name)
+                ? name
+                : null;
+            item.LastResourcePlanActivityUtc = lastActivity.TryGetValue(item.ProjectNumber, out var touched)
+                ? touched
+                : null;
+        }
 
         return new PagedResultDto<ProjectListItemDto>
         {
@@ -92,6 +119,46 @@ public sealed class ProjectQueryService : IProjectQueryService
             TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
             Items = items
         };
+    }
+
+    // "When did anyone last plan hours on this?" — the newest stamp across the project's
+    // resource plan entries, reached through its planning targets. Batched over a page of
+    // projects so the list costs one extra query rather than one per row.
+    private async Task<Dictionary<int, DateTime>> GetLastResourcePlanActivityAsync(
+        IReadOnlyList<int> projectNumbers,
+        CancellationToken cancellationToken)
+    {
+        if (projectNumbers.Count == 0)
+        {
+            return [];
+        }
+
+        var rows = await (
+                from entry in _db.ResourcePlanEntries.AsNoTracking()
+                join target in _db.PlanningTargets.AsNoTracking()
+                    on entry.PlanningTargetId equals target.PlanningTargetId
+                where target.ExtProjectNumber != null && projectNumbers.Contains(target.ExtProjectNumber.Value)
+                group entry by target.ExtProjectNumber!.Value into grouped
+                select new
+                {
+                    ProjectNumber = grouped.Key,
+                    // An entry that has never been edited since it was created carries only
+                    // CreatedAt, so both stamps count.
+                    LastTouchedUtc = grouped.Max(x => x.UpdatedAt ?? x.CreatedAt)
+                })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(x => x.ProjectNumber, x => x.LastTouchedUtc);
+    }
+
+    // e-conomic owns project status; we only mirror it. Small enough to read whole and
+    // cheaper than joining it into every query that wants the name.
+    private async Task<Dictionary<int, string>> GetStatusNamesAsync(CancellationToken cancellationToken)
+    {
+        return await _db.ProjectStatuses
+            .AsNoTracking()
+            .Where(x => x.Name != null)
+            .ToDictionaryAsync(x => x.StatusNumber, x => x.Name!, cancellationToken);
     }
 
     public async Task<ProjectDetailsDto?> GetProjectByNumberAsync(int projectNumber, CancellationToken cancellationToken = default)
@@ -144,6 +211,13 @@ public sealed class ProjectQueryService : IProjectQueryService
             disciplineNames = discs.Select(d => d.Name).ToList();
         }
 
+        var statusNames = await GetStatusNamesAsync(cancellationToken);
+        var lastActivityByProject = await GetLastResourcePlanActivityAsync([projectNumber], cancellationToken);
+        var resolvedStatusName = project.StatusNumber.HasValue
+            && statusNames.TryGetValue(project.StatusNumber.Value, out var statusName)
+                ? statusName
+                : null;
+
         return new ProjectDetailsDto
         {
             ProjectNumber = project.ProjectNumber,
@@ -154,6 +228,10 @@ public sealed class ProjectQueryService : IProjectQueryService
             ResponsibleEmployeeNumber = project.ResponsibleEmployeeNumber,
             DepartmentNumber = project.DepartmentNumber,
             StatusNumber = project.StatusNumber,
+            StatusName = resolvedStatusName,
+            LastResourcePlanActivityUtc = lastActivityByProject.TryGetValue(projectNumber, out var lastTouched)
+                ? lastTouched
+                : null,
             Description = project.Description,
             IsBarred = project.IsBarred,
             IsClosed = project.IsClosed,
@@ -172,7 +250,7 @@ public sealed class ProjectQueryService : IProjectQueryService
             ColorTag = meta?.ColorTag,
             PlanningGroup = meta?.PlanningGroup,
             Phase = meta?.Phase,
-            ProbabilityPercent = meta?.ProbabilityPercent,
+            ProbabilityPercent = meta?.ProbabilityPercent ?? PlanningDefaults.ProbabilityPercent,
             LastPlanningReviewBy = meta?.LastPlanningReviewBy,
             Priority = meta?.Priority,
             IsBillableForPlanning = meta?.IsBillableForPlanning ?? false,
@@ -202,6 +280,7 @@ public sealed class ProjectQueryService : IProjectQueryService
             ProjectTypeId = meta?.ProjectTypeId,
             ProjectRoleId = meta?.ProjectRoleId,
             ComplexityLevelId = meta?.ComplexityLevelId,
+            ProjectOwnerEmployeeNumber = meta?.ProjectOwnerEmployeeNumber,
             ProjectArchiveUrl = meta?.ProjectArchiveUrl,
             ProjectArchiveSiteId = meta?.ProjectArchiveSiteId,
             ProjectArchiveDriveId = meta?.ProjectArchiveDriveId,

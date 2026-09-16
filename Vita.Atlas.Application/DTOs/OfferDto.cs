@@ -82,6 +82,12 @@ public sealed class OfferDto
     public string? ComplexityLevelName { get; set; }
 
     // Offer case SharePoint / Outlook folder links
+    /// <summary>
+    /// When hours on this offer were last planned or changed — the newest create/update stamp
+    /// across its resource plan entries. Null means nobody has planned on it.
+    /// </summary>
+    public DateTime? LastResourcePlanActivityUtc { get; set; }
+
     public string? OfferCaseUrl { get; set; }
     public string? OfferCasePath { get; set; }
     public string? OfferCaseDriveId { get; set; }

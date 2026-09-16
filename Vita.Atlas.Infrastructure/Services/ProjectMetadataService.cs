@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using Vita.Atlas.Application;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
 using Vita.Atlas.Infrastructure.Data;
@@ -180,7 +181,7 @@ public sealed class ProjectMetadataService : IProjectMetadataService
         entity.ColorTag = NormalizeNullable(request.ColorTag);
         entity.PlanningGroup = NormalizeNullable(request.PlanningGroup);
         entity.Phase = NormalizeNullable(request.Phase);
-        entity.ProbabilityPercent = request.ProbabilityPercent;
+        entity.ProbabilityPercent = request.ProbabilityPercent ?? PlanningDefaults.ProbabilityPercent;
         entity.BudgetHours = request.BudgetHours;
         entity.BudgetRevenue = request.BudgetRevenue;
         entity.LastPlanningReviewBy = NormalizeNullable(request.LastPlanningReviewBy);
@@ -209,6 +210,7 @@ public sealed class ProjectMetadataService : IProjectMetadataService
         entity.ProjectTypeId = request.ProjectTypeId;
         entity.ProjectRoleId = request.ProjectRoleId;
         entity.ComplexityLevelId = request.ComplexityLevelId;
+        entity.ProjectOwnerEmployeeNumber = request.ProjectOwnerEmployeeNumber;
         entity.ProjectDawaId = NormalizeNullable(request.ProjectDawaId);
         entity.ProjectStreetAddress = NormalizeNullable(request.ProjectStreetAddress);
         entity.ProjectPostalCode = NormalizeNullable(request.ProjectPostalCode);
@@ -386,7 +388,7 @@ public sealed class ProjectMetadataService : IProjectMetadataService
         ColorTag = entity.ColorTag,
         PlanningGroup = entity.PlanningGroup,
         Phase = entity.Phase,
-        ProbabilityPercent = entity.ProbabilityPercent,
+        ProbabilityPercent = entity.ProbabilityPercent ?? PlanningDefaults.ProbabilityPercent,
         BudgetHours = entity.BudgetHours,
         BudgetRevenue = entity.BudgetRevenue,
         LastPlanningReviewBy = entity.LastPlanningReviewBy,
@@ -419,6 +421,7 @@ public sealed class ProjectMetadataService : IProjectMetadataService
         ProjectTypeId = entity.ProjectTypeId,
         ProjectRoleId = entity.ProjectRoleId,
         ComplexityLevelId = entity.ComplexityLevelId,
+        ProjectOwnerEmployeeNumber = entity.ProjectOwnerEmployeeNumber,
         ProjectArchiveUrl = entity.ProjectArchiveUrl,
         ProjectArchiveSiteId = entity.ProjectArchiveSiteId,
         ProjectArchiveDriveId = entity.ProjectArchiveDriveId,
@@ -450,7 +453,7 @@ public sealed class ProjectMetadataService : IProjectMetadataService
             ColorTag = entity.ColorTag,
             PlanningGroup = entity.PlanningGroup,
             Phase = entity.Phase,
-            ProbabilityPercent = entity.ProbabilityPercent,
+            ProbabilityPercent = entity.ProbabilityPercent ?? PlanningDefaults.ProbabilityPercent,
             BudgetHours = entity.BudgetHours,
             BudgetRevenue = entity.BudgetRevenue,
             LastPlanningReviewBy = entity.LastPlanningReviewBy,
@@ -483,6 +486,7 @@ public sealed class ProjectMetadataService : IProjectMetadataService
             ProjectTypeId = entity.ProjectTypeId,
             ProjectRoleId = entity.ProjectRoleId,
             ComplexityLevelId = entity.ComplexityLevelId,
+            ProjectOwnerEmployeeNumber = entity.ProjectOwnerEmployeeNumber,
             ProjectArchiveUrl = entity.ProjectArchiveUrl,
             ProjectArchiveSiteId = entity.ProjectArchiveSiteId,
             ProjectArchiveDriveId = entity.ProjectArchiveDriveId,

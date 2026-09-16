@@ -36,9 +36,12 @@ public sealed class ProjectsController : ControllerBase
         [FromQuery] bool? isClosed = null,
         [FromQuery] bool? isBarred = null,
         [FromQuery] string? dawaId = null,
+        // Off by default: see ProjectQueryService for why this one column is opt-in.
+        [FromQuery] bool includeLastResourcePlanActivity = false,
         CancellationToken cancellationToken = default)
     {
-        var projects = await _queryService.GetProjectsAsync(page, pageSize, query, isClosed, isBarred, dawaId, cancellationToken);
+        var projects = await _queryService.GetProjectsAsync(
+            page, pageSize, query, isClosed, isBarred, dawaId, includeLastResourcePlanActivity, cancellationToken);
         return Ok(projects);
     }
 

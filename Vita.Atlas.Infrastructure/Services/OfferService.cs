@@ -2,6 +2,7 @@ using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
+using Vita.Atlas.Application;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
 using Vita.Atlas.Infrastructure.Data;
@@ -50,6 +51,7 @@ public sealed class OfferService : IOfferService
         bool? deliveredToPq = null,
         string? dawaId = null,
         bool excludeFjern = false,
+        bool includeLastResourcePlanActivity = false,
         CancellationToken cancellationToken = default)
     {
         page = page < 1 ? 1 : page;
@@ -102,6 +104,21 @@ public sealed class OfferService : IOfferService
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
+        // Opt-in for the same reason as the project list: this groups over the whole
+        // resource-plan-entry table, and only the offers admin table shows the column.
+        if (includeLastResourcePlanActivity)
+        {
+            var lastActivity = await GetLastResourcePlanActivityAsync(
+                items.Select(x => x.OfferId).ToList(), cancellationToken);
+
+            foreach (var item in items)
+            {
+                item.LastResourcePlanActivityUtc = lastActivity.TryGetValue(item.OfferId, out var touched)
+                    ? touched
+                    : null;
+            }
+        }
+
         return new PagedResultDto<OfferDto>
         {
             Page = page,
@@ -110,6 +127,34 @@ public sealed class OfferService : IOfferService
             TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
             Items = items
         };
+    }
+
+    // Same question the project list answers, asked of an offer's planning target instead:
+    // when did anyone last plan hours against it. Batched over a page of offers.
+    private async Task<Dictionary<int, DateTime>> GetLastResourcePlanActivityAsync(
+        IReadOnlyList<int> offerIds,
+        CancellationToken cancellationToken)
+    {
+        if (offerIds.Count == 0)
+        {
+            return [];
+        }
+
+        var rows = await (
+                from entry in _dbContext.ResourcePlanEntries.AsNoTracking()
+                join target in _dbContext.PlanningTargets.AsNoTracking()
+                    on entry.PlanningTargetId equals target.PlanningTargetId
+                where target.OfferId != null && offerIds.Contains(target.OfferId.Value)
+                group entry by target.OfferId!.Value into grouped
+                select new
+                {
+                    OfferId = grouped.Key,
+                    // An entry never edited since creation carries only CreatedAt.
+                    LastTouchedUtc = grouped.Max(x => x.UpdatedAt ?? x.CreatedAt)
+                })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(x => x.OfferId, x => x.LastTouchedUtc);
     }
 
     public async Task<OfferDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -122,6 +167,10 @@ public sealed class OfferService : IOfferService
             return null;
 
         await ResolveLookupNamesAsync(offer, cancellationToken);
+        offer.LastResourcePlanActivityUtc =
+            (await GetLastResourcePlanActivityAsync([id], cancellationToken)).TryGetValue(id, out var lastTouched)
+                ? lastTouched
+                : null;
         offer.Partners = await LoadPartnersAsync(id, cancellationToken);
         offer.SegmentIds = await LoadOfferSegmentIdsAsync(id, cancellationToken);
         offer.Segments = await LoadOfferSegmentNamesAsync(id, cancellationToken);
@@ -186,7 +235,7 @@ public sealed class OfferService : IOfferService
                     ColorTag = x.o.ColorTag,
                     PlanningGroup = x.o.PlanningGroup,
                     Phase = x.o.Phase,
-                    ProbabilityPercent = x.o.ProbabilityPercent,
+                    ProbabilityPercent = x.o.ProbabilityPercent ?? PlanningDefaults.ProbabilityPercent,
                     LastPlanningReviewBy = x.o.LastPlanningReviewBy,
                     Priority = x.o.Priority,
                     IsBillableForPlanning = x.o.IsBillableForPlanning,
@@ -302,7 +351,7 @@ public sealed class OfferService : IOfferService
             ColorTag = NormalizeNullable(request.ColorTag),
             PlanningGroup = NormalizeNullable(request.PlanningGroup),
             Phase = NormalizeNullable(request.Phase),
-            ProbabilityPercent = request.ProbabilityPercent,
+            ProbabilityPercent = request.ProbabilityPercent ?? PlanningDefaults.ProbabilityPercent,
             LastPlanningReviewBy = NormalizeNullable(request.LastPlanningReviewBy),
             Priority = request.Priority,
             IsBillableForPlanning = request.IsBillableForPlanning,
@@ -433,7 +482,7 @@ public sealed class OfferService : IOfferService
         entity.ColorTag = NormalizeNullable(request.ColorTag);
         entity.PlanningGroup = NormalizeNullable(request.PlanningGroup);
         entity.Phase = NormalizeNullable(request.Phase);
-        entity.ProbabilityPercent = request.ProbabilityPercent;
+        entity.ProbabilityPercent = request.ProbabilityPercent ?? PlanningDefaults.ProbabilityPercent;
         entity.LastPlanningReviewBy = NormalizeNullable(request.LastPlanningReviewBy);
         entity.Priority = request.Priority;
         entity.IsBillableForPlanning = request.IsBillableForPlanning;
@@ -1314,7 +1363,7 @@ public sealed class OfferService : IOfferService
         ColorTag = entity.ColorTag,
         PlanningGroup = entity.PlanningGroup,
         Phase = entity.Phase,
-        ProbabilityPercent = entity.ProbabilityPercent,
+        ProbabilityPercent = entity.ProbabilityPercent ?? PlanningDefaults.ProbabilityPercent,
         LastPlanningReviewBy = entity.LastPlanningReviewBy,
         Priority = entity.Priority,
         IsBillableForPlanning = entity.IsBillableForPlanning,

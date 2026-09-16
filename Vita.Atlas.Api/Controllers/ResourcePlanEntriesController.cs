@@ -166,4 +166,53 @@ public sealed class ResourcePlanEntriesController : ControllerBase
             return Conflict(new { message = "An entry for this plan date already exists. Use the update endpoint to change hours." });
         }
     }
+
+    // Moves a whole plan line onto another activity in one call. The alternative — the
+    // client rewriting each day's entry itself — leaves the line split across two
+    // activities if it stops halfway, and only ever touches the periods it has loaded.
+    [HttpPost("bulk/change-activity")]
+    public async Task<ActionResult<ChangeResourcePlanEntriesActivityResult>> ChangeActivity(
+        [FromBody] ChangeResourcePlanEntriesActivityRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var caller = CallerInfo.FromClaimsPrincipal(User);
+            var result = await _service.ChangeActivityAsync(request, caller, cancellationToken);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // Moves a whole plan line to another project in the same family — main project to
+    // subproject, or between subprojects. Activities follow where the destination project
+    // carries the same one; see ChangeResourcePlanEntriesTargetResult for what happens
+    // when it doesn't.
+    [HttpPost("bulk/change-target")]
+    public async Task<ActionResult<ChangeResourcePlanEntriesTargetResult>> ChangeTarget(
+        [FromBody] ChangeResourcePlanEntriesTargetRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var caller = CallerInfo.FromClaimsPrincipal(User);
+            var result = await _service.ChangeTargetAsync(request, caller, cancellationToken);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

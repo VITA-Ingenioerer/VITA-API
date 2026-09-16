@@ -23,9 +23,12 @@ public sealed class OffersController : ControllerBase
         [FromQuery] bool? deliveredToPq = null,
         [FromQuery] string? dawaId = null,
         [FromQuery] bool excludeFjern = false,
+        // Off by default: see OfferService for why this one column is opt-in.
+        [FromQuery] bool includeLastResourcePlanActivity = false,
         CancellationToken cancellationToken = default)
     {
-        var result = await _service.GetAllAsync(page, pageSize, query, deliveredToPq, dawaId, excludeFjern, cancellationToken);
+        var result = await _service.GetAllAsync(
+            page, pageSize, query, deliveredToPq, dawaId, excludeFjern, includeLastResourcePlanActivity, cancellationToken);
         return Ok(result);
     }
 
