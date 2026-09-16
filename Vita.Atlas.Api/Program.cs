@@ -253,6 +253,10 @@ builder.Services.AddHttpClient<IEntraEmployeeClassificationClient, EntraEmployee
 {
     client.Timeout = TimeSpan.FromSeconds(60);
 });
+builder.Services.AddHttpClient<IEntraUserProfileClient, EntraUserProfileClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
 builder.Services.AddHttpClient<IRessourceplanWorkbookSourceClient, RessourceplanWorkbookSourceClient>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(60);

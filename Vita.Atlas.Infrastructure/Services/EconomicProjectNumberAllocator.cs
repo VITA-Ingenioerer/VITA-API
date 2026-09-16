@@ -5,7 +5,15 @@ namespace Vita.Atlas.Infrastructure.Services;
 
 public sealed class EconomicProjectNumberAllocator : IEconomicProjectNumberAllocator
 {
-    private const int MaxAttempts = 10;
+    // Main-project blocks are tried one after another on collision. Each attempt is a real
+    // e-conomic create call, so this is a sanity bound, not the allocation strategy — the
+    // starting point already comes from the highest number actually in use.
+    private const int MaxMainProjectAttempts = 25;
+
+    // A main project owns the block xxxxxx00–xxxxxx99: the main project itself is 00 and its
+    // sub-projects are 01–99. Ninety-nine is therefore a hard ceiling, not a retry budget —
+    // every offset in the block gets tried before allocation is declared impossible.
+    private const int MinSubProjectOffset = 1;
     private const int MaxSubProjectOffset = 99;
 
     private readonly IEconomicProjectSourceClient _sourceClient;
@@ -35,7 +43,7 @@ public sealed class EconomicProjectNumberAllocator : IEconomicProjectNumberAlloc
             ? 1
             : (maxNumber.Value % 1_000_000) / 100 + 1;
 
-        for (var attempt = 0; attempt < MaxAttempts; attempt++)
+        for (var attempt = 0; attempt < MaxMainProjectAttempts; attempt++)
         {
             var counter = nextCounter + attempt;
             if (counter > 9999)
@@ -64,7 +72,7 @@ public sealed class EconomicProjectNumberAllocator : IEconomicProjectNumberAlloc
         }
 
         throw new InvalidOperationException(
-            $"Could not allocate a main project number after {MaxAttempts} attempts.");
+            $"Could not allocate a main project number after {MaxMainProjectAttempts} attempts.");
     }
 
     public async Task<int> CreateSubProjectAsync(
@@ -76,13 +84,17 @@ public sealed class EconomicProjectNumberAllocator : IEconomicProjectNumberAlloc
         int? responsibleEmployeeNumber,
         CancellationToken cancellationToken = default)
     {
-        for (var attempt = 0; attempt < MaxAttempts; attempt++)
+        // Offsets are only meaningful relative to a block start. Given a sub-project number by
+        // mistake, every candidate below would land outside its own main project's block and
+        // quietly collide with the next project's numbers.
+        if (mainProjectNumber % 100 != 0)
         {
-            var offset = preferredOffset + attempt;
-            if (offset > MaxSubProjectOffset)
-                throw new InvalidOperationException(
-                    $"No more sub-project numbers available in the block for main project {mainProjectNumber}.");
+            throw new InvalidOperationException(
+                $"'{mainProjectNumber}' is not a main project number — sub-projects can only be created in a block ending in 00.");
+        }
 
+        foreach (var offset in EnumerateSubProjectOffsets(preferredOffset))
+        {
             var candidate = mainProjectNumber + offset;
 
             try
@@ -101,12 +113,37 @@ public sealed class EconomicProjectNumberAllocator : IEconomicProjectNumberAlloc
             }
             catch (EconomicProjectNumberConflictException)
             {
-                // try the next offset within the block
+                // e-conomic is authoritative: that number is taken, move to the next offset.
             }
         }
 
         throw new InvalidOperationException(
-            $"Could not allocate a sub-project number for main project {mainProjectNumber} after {MaxAttempts} attempts.");
+            $"All sub-project numbers {mainProjectNumber + MinSubProjectOffset}–{mainProjectNumber + MaxSubProjectOffset} " +
+            $"are in use for main project {mainProjectNumber}.");
+    }
+
+    /// <summary>
+    /// Every offset in the block exactly once: the preferred one first, upwards to 99, then
+    /// wrapping to pick up gaps below it.
+    ///
+    /// Wrapping matters because callers derive the preferred offset from how many sub-projects
+    /// they think exist. Delete sub-project 02 of five and the next create would ask for 06,
+    /// and without the wrap the free 02 would never be offered — the block would look full
+    /// long before it was.
+    /// </summary>
+    private static IEnumerable<int> EnumerateSubProjectOffsets(int preferredOffset)
+    {
+        var start = Math.Clamp(preferredOffset, MinSubProjectOffset, MaxSubProjectOffset);
+
+        for (var offset = start; offset <= MaxSubProjectOffset; offset++)
+        {
+            yield return offset;
+        }
+
+        for (var offset = MinSubProjectOffset; offset < start; offset++)
+        {
+            yield return offset;
+        }
     }
 
     private async Task<int?> GetMaxProjectNumberInRangeAsync(int rangeMin, int rangeMax, CancellationToken cancellationToken)

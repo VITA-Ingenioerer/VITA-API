@@ -15,17 +15,20 @@ public sealed class UsersController : ControllerBase
     private readonly IUserSyncService _syncService;
     private readonly IOutOfOfficeCalendarService _outOfOfficeService;
     private readonly IEmployeeIdentityService _employeeIdentityService;
+    private readonly IEntraUserProfileClient _entraUserProfileClient;
 
     public UsersController(
         AtlasDbContext dbContext,
         IUserSyncService syncService,
         IOutOfOfficeCalendarService outOfOfficeService,
-        IEmployeeIdentityService employeeIdentityService)
+        IEmployeeIdentityService employeeIdentityService,
+        IEntraUserProfileClient entraUserProfileClient)
     {
         _dbContext = dbContext;
         _syncService = syncService;
         _outOfOfficeService = outOfOfficeService;
         _employeeIdentityService = employeeIdentityService;
+        _entraUserProfileClient = entraUserProfileClient;
     }
 
     [HttpGet]
@@ -126,6 +129,75 @@ public sealed class UsersController : ControllerBase
         }
 
         return Ok(user);
+    }
+
+    // Department, office and manager live in Entra — this writes them there first and only
+    // mirrors the result into ext.users afterwards. Doing it the other way round would leave
+    // our row "correct" and Entra stale until someone noticed, and the next user sync would
+    // quietly overwrite our value from Entra anyway.
+    [HttpPut("{employeeId:int}/profile")]
+    public async Task<IActionResult> UpdateProfile(
+        int employeeId,
+        [FromBody] UpdateUserProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var user = await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.EmployeeId == employeeId, cancellationToken);
+
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(user.UserPrincipalName))
+        {
+            return Conflict(new { message = "Brugeren har ingen Entra-konto og kan ikke opdateres." });
+        }
+
+        string? managerUserPrincipalName = null;
+
+        if (request.ManagerEmployeeId.HasValue)
+        {
+            var manager = await _dbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.EmployeeId == request.ManagerEmployeeId.Value, cancellationToken);
+
+            if (manager is null || string.IsNullOrWhiteSpace(manager.UserPrincipalName))
+            {
+                return BadRequest(new { message = $"Leder {request.ManagerEmployeeId.Value} blev ikke fundet i Entra." });
+            }
+
+            managerUserPrincipalName = manager.UserPrincipalName;
+        }
+
+        var department = string.IsNullOrWhiteSpace(request.Department) ? null : request.Department.Trim();
+        var officeLocation = string.IsNullOrWhiteSpace(request.OfficeLocation) ? null : request.OfficeLocation.Trim();
+
+        try
+        {
+            await _entraUserProfileClient.UpdateProfileAsync(
+                user.UserPrincipalName, department, officeLocation, cancellationToken);
+
+            // Only touched when the caller actually changed it: a manager write is a
+            // directory relationship change, not worth replaying on every save.
+            if (request.ManagerEmployeeId != user.ManagerEmployeeId)
+            {
+                await _entraUserProfileClient.UpdateManagerAsync(
+                    user.UserPrincipalName, managerUserPrincipalName, cancellationToken);
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Nothing has been written locally at this point, so our row still matches Entra.
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = ex.Message });
+        }
+
+        user.Department = department;
+        user.OfficeLocation = officeLocation;
+        user.ManagerEmployeeId = request.ManagerEmployeeId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { user.EmployeeId, user.Department, user.OfficeLocation, user.ManagerEmployeeId });
     }
 
     // The note is the one thing on a user that is ours to write — everything else on the row

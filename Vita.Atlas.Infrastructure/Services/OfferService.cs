@@ -273,6 +273,60 @@ public sealed class OfferService : IOfferService
                     ProjectRegion = x.o.ProjectRegion
                 });
 
+    // The unique index is the only thing that can reject an offer on its number, so matching
+    // on its name is enough to tell "someone took the number" from any other write failure.
+    private static bool IsOfferNumberConflict(DbUpdateException exception) =>
+        exception.InnerException?.Message.Contains("offer_number", StringComparison.OrdinalIgnoreCase) == true;
+
+    /// <summary>
+    /// Returns the requested offer number when it is free, otherwise the next unused one in
+    /// this year's T{yy}nnn series. A blank request allocates from scratch.
+    /// </summary>
+    private async Task<string> ResolveAvailableOfferNumberAsync(
+        string? requestedOfferNumber,
+        CancellationToken cancellationToken)
+    {
+        var requested = requestedOfferNumber?.Trim().ToUpperInvariant() ?? string.Empty;
+
+        if (requested.Length > 0)
+        {
+            var taken = await _dbContext.Offers
+                .AsNoTracking()
+                .AnyAsync(x => x.OfferNumber == requested, cancellationToken);
+
+            if (!taken)
+            {
+                return requested;
+            }
+        }
+
+        var yearSuffix = DateTime.UtcNow.Year % 100;
+        var prefix = $"T{yearSuffix:D2}";
+
+        // Only this year's series is considered, matching how the numbers are read: T25001 is
+        // the first offer of 2025 regardless of what 2024 reached.
+        var existingNumbers = await _dbContext.Offers
+            .AsNoTracking()
+            .Where(x => x.OfferNumber.StartsWith(prefix))
+            .Select(x => x.OfferNumber)
+            .ToListAsync(cancellationToken);
+
+        var highestSequence = 0;
+        foreach (var offerNumber in existingNumbers)
+        {
+            var suffix = offerNumber[prefix.Length..];
+            if (int.TryParse(suffix, out var sequence) && sequence > highestSequence)
+            {
+                highestSequence = sequence;
+            }
+        }
+
+        // One past the highest ever used, deliberately not the lowest free hole. A deleted
+        // offer's number is not safe to hand out again: it still names a SharePoint folder
+        // under "Tilbud {year}" and appears on paperwork that outlives the row.
+        return $"{prefix}{highestSequence + 1:D3}";
+    }
+
     public async Task<OfferDto> CreateAsync(
         CreateOfferRequest request,
         CallerInfo caller,
@@ -281,13 +335,12 @@ public sealed class OfferService : IOfferService
         ValidateQuarter(request.ExpectedStartQuarter, nameof(request.ExpectedStartQuarter));
         ValidateQuarter(request.ExpectedEndQuarter, nameof(request.ExpectedEndQuarter));
 
-        var normalizedOfferNumber = request.OfferNumber.Trim().ToUpperInvariant();
-
-        var exists = await _dbContext.Offers
-            .AnyAsync(x => x.OfferNumber == normalizedOfferNumber, cancellationToken);
-
-        if (exists)
-            throw new InvalidOperationException($"Offer '{normalizedOfferNumber}' already exists.");
+        // The client proposes a number from the list it happens to have loaded, so by the time
+        // it arrives here it may already be taken — two people creating at once, or a stale
+        // cache. Rejecting that used to lose the whole form; taking the next free number
+        // instead is what "the next one in line" means.
+        var normalizedOfferNumber = await ResolveAvailableOfferNumberAsync(
+            request.OfferNumber, cancellationToken);
 
         if (request.OfferStatusId.HasValue)
         {
@@ -375,7 +428,23 @@ public sealed class OfferService : IOfferService
         };
 
         _dbContext.Offers.Add(entity);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // The number was free when it was resolved a few statements ago, but core.offers has a
+        // unique index on it and another request can take it in between. Losing that race is
+        // normal, not exceptional: re-resolve and try again rather than failing the create.
+        const int maxOfferNumberAttempts = 5;
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                break;
+            }
+            catch (DbUpdateException ex) when (IsOfferNumberConflict(ex) && attempt < maxOfferNumberAttempts)
+            {
+                entity.OfferNumber = await ResolveAvailableOfferNumberAsync(null, cancellationToken);
+            }
+        }
 
         await SavePartnersAsync(entity.OfferId, request.Partners, cancellationToken);
         await SyncOfferSegmentsAsync(entity.OfferId, request.SegmentIds, cancellationToken);
