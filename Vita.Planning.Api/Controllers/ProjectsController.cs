@@ -73,6 +73,32 @@ public sealed class ProjectsController : ControllerBase
     }
 
     /// <summary>
+    /// Adds one sub-project to an existing main project. The body carries only the
+    /// distinguishing part of the name; the main project's name and the " - " separator are
+    /// applied server-side, and the sub-project number is allocated from the main project's
+    /// own block. Projects only — offers have no sub-projects.
+    /// </summary>
+    [HttpPost("{mainProjectNumber:int}/subprojects")]
+    public async Task<ActionResult<AddSubProjectResult>> AddSubProject(
+        int mainProjectNumber,
+        [FromBody] AddSubProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _managementService.AddSubProjectAsync(mainProjectNumber, request, cancellationToken));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Debug/test endpoint: exercises workspace provisioning (M365 group, Teams, SharePoint,
     /// Outlook folder) in isolation, without touching e-conomic or the database. Use a fake
     /// MainProjectNumber (e.g. 26999999) to target a given year's mailbox without creating a

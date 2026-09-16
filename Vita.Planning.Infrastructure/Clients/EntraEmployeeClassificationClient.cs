@@ -203,21 +203,21 @@ public sealed class EntraEmployeeClassificationClient : IEntraEmployeeClassifica
 
         var mirror = BuildExtensionAttributeMirror(classification.SecondaryFagligheder);
 
+        // Cleared with an empty string, NOT null. Graph accepts a null extensionAttribute
+        // with 204 No Content and then leaves the previous value in place — verified
+        // against this tenant: PATCH {"extensionAttribute2": null} returned 204 and a
+        // re-read still showed the old value, while "" cleared it.
+        //
+        // This matters more than it looks: these mirrors drive Entra dynamic group
+        // membership. Silently keeping a stale value means someone who has had a faglighed
+        // removed stays in the group it grants, indefinitely.
         var payload = new JsonObject
         {
             ["onPremisesExtensionAttributes"] = new JsonObject
             {
-                ["extensionAttribute1"] = string.IsNullOrWhiteSpace(classification.PrimaryFaglighed)
-                    ? null
-                    : JsonValue.Create(classification.PrimaryFaglighed),
-
-                ["extensionAttribute2"] = mirror is null
-                    ? null
-                    : JsonValue.Create(mirror),
-
-                ["extensionAttribute3"] = string.IsNullOrWhiteSpace(classification.Profession)
-                    ? null
-                    : JsonValue.Create(classification.Profession)
+                ["extensionAttribute1"] = JsonValue.Create(classification.PrimaryFaglighed ?? string.Empty),
+                ["extensionAttribute2"] = JsonValue.Create(mirror ?? string.Empty),
+                ["extensionAttribute3"] = JsonValue.Create(classification.Profession ?? string.Empty)
             }
         };
 

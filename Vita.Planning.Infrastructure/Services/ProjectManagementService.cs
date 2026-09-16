@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vita.Planning.Application.DTOs;
 using Vita.Planning.Application.Interfaces;
 using Vita.Planning.Infrastructure.Data;
@@ -238,6 +238,70 @@ public sealed class ProjectManagementService : IProjectManagementService
         metadata.ProjectArchiveOutlookFolderId = workspace.OutlookFolderId ?? metadata.ProjectArchiveOutlookFolderId;
 
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AddSubProjectResult> AddSubProjectAsync(
+        int mainProjectNumber,
+        AddSubProjectRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var suffix = request.NameSuffix?.Trim();
+
+        if (string.IsNullOrWhiteSpace(suffix))
+        {
+            throw new InvalidOperationException("Underprojektets navn skal angives.");
+        }
+
+        var mainProject = await _db.Projects
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.ProjectNumber == mainProjectNumber, cancellationToken)
+            ?? throw new KeyNotFoundException($"Project {mainProjectNumber} was not found.");
+
+        if (!mainProject.IsMainProject)
+        {
+            throw new InvalidOperationException(
+                $"Projekt {mainProjectNumber} er ikke et hovedprojekt. Underprojekter kan kun oprettes under et hovedprojekt.");
+        }
+
+        // Sub-projects live in the main project's own block of 99 numbers. The next offset is
+        // taken from the highest number already used in that block rather than from a count,
+        // so a gap left by a deleted or failed sub-project is never handed out twice.
+        var highestExisting = await _db.Projects
+            .AsNoTracking()
+            .Where(p => p.ProjectNumber > mainProjectNumber && p.ProjectNumber <= mainProjectNumber + 99)
+            .Select(p => (int?)p.ProjectNumber)
+            .MaxAsync(cancellationToken);
+
+        var nextOffset = highestExisting is null ? 1 : highestExisting.Value - mainProjectNumber + 1;
+
+        if (nextOffset > 99)
+        {
+            throw new InvalidOperationException(
+                $"Hovedprojekt {mainProjectNumber} har opbrugt sine 99 underprojektnumre.");
+        }
+
+        // Same " - " convention CreateProjectAsync uses, applied here rather than trusted from
+        // the caller so both creation paths produce identically shaped names.
+        var subName = $"{mainProject.ProjectName.Trim()} - {suffix}";
+
+        var subProjectNumber = await _projectNumberAllocator.CreateSubProjectAsync(
+            mainProjectNumber: mainProjectNumber,
+            preferredOffset: nextOffset,
+            name: subName,
+            projectGroupNumber: mainProject.ProjectGroupNumber,
+            customerNumber: mainProject.CustomerNumber,
+            responsibleEmployeeNumber: mainProject.ResponsibleEmployeeNumber,
+            cancellationToken: cancellationToken);
+
+        await UpsertProjectSyncStubAsync(subProjectNumber, subName, isMainProject: false, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return new AddSubProjectResult
+        {
+            SubProjectNumber = subProjectNumber,
+            SubProjectName = subName,
+            MainProjectNumber = mainProjectNumber,
+        };
     }
 
     private async Task UpsertProjectSyncStubAsync(

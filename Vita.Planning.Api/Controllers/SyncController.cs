@@ -24,6 +24,7 @@ public sealed class SyncController : ControllerBase
     private readonly IProjectActivitySyncService _projectActivitySyncService;
     private readonly ITimeEntrySyncService _timeEntrySyncService;
     private readonly IOvertimeBalanceRefreshService _overtimeBalanceRefreshService;
+    private readonly IEmployeeIdentityService _employeeIdentityService;
 
     public SyncController(
         ISyncRunService syncRunService,
@@ -37,7 +38,8 @@ public sealed class SyncController : ControllerBase
         IActivitySyncService activitySyncService,
         IProjectActivitySyncService projectActivitySyncService,
         ITimeEntrySyncService timeEntrySyncService,
-        IOvertimeBalanceRefreshService overtimeBalanceRefreshService)
+        IOvertimeBalanceRefreshService overtimeBalanceRefreshService,
+        IEmployeeIdentityService employeeIdentityService)
     {
         _syncRunService = syncRunService;
         _userSyncService = userSyncService;
@@ -51,6 +53,7 @@ public sealed class SyncController : ControllerBase
         _projectActivitySyncService = projectActivitySyncService;
         _timeEntrySyncService = timeEntrySyncService;
         _overtimeBalanceRefreshService = overtimeBalanceRefreshService;
+        _employeeIdentityService = employeeIdentityService;
     }
 
     [HttpPost("test-run")]
@@ -97,6 +100,23 @@ public sealed class SyncController : ControllerBase
             cancellationToken: cancellationToken);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Pulls employee classification from Entra into the local read model. Entra to us only —
+    /// it never writes back.
+    /// </summary>
+    [HttpPost("employee-classification")]
+    public async Task<IActionResult> SyncEmployeeClassification(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(new { updated = await _employeeIdentityService.ReconcileAllAsync(cancellationToken) });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = ex.Message });
+        }
     }
 
     [HttpPost("projects")]

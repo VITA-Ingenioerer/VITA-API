@@ -56,12 +56,18 @@ NEVER      SQL → Graph
 
 **API**
 
-| Method | Route | Authorization |
-|---|---|---|
-| `GET` | `/api/employee-classification/options` | `PlannerAccess` |
-| `GET` | `/api/employees/{employeeId}/classification` | `PlannerAccess` |
-| `PUT` | `/api/employees/{employeeId}/classification` | `EmployeeClassificationWrite` |
-| `POST` | `/api/employee-classification/reconcile` | `EmployeeClassificationWrite` |
+| Method | Route | Controller | Authorization |
+|---|---|---|---|
+| `GET` | `/api/lookups/employee-classification` | `LookupsController` | `PlannerAccess` |
+| `GET` | `/api/users/{employeeId}/classification` | `UsersController` | `PlannerAccess` |
+| `PUT` | `/api/users/{employeeId}/classification` | `UsersController` | `EmployeeClassificationWrite` |
+| `POST` | `/api/sync/employee-classification` | `SyncController` | `PlannerAccess` |
+
+No controller of its own. The endpoints sit where their kind already lives: an employee is
+`/api/users/{employeeId}` throughout this API (never `/api/employees`), every dropdown source
+is under `/api/lookups`, and reconciliation is a sync like the eleven others in
+`SyncController`. An earlier version put all four under `/api/employee-classification/*` in a
+dedicated controller, which introduced a second noun for the same entity.
 
 The write endpoint takes **only** an employee id. The Entra UPN is resolved server-side from
 `ext.users` and never accepted from the caller.
@@ -210,7 +216,7 @@ secret, which is the main reason to prefer it.
 4. Set `WriteUserPrincipalNames` (or assign the app role) — otherwise every write 403s.
    **Done 2026-09-14** on both app services (`mkj@vitaing.dk`).
 5. Deploy the API, then the SPFx package.
-6. Smoke test: `GET /api/employee-classification/options` should return three non-empty lists.
+6. Smoke test: `GET /api/lookups/employee-classification` should return three non-empty lists.
 
 Steps 1 and 2 are independent; the API starts fine without either, and only classification
 requests fail.

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Vita.Planning.Application.DTOs;
 using Vita.Planning.Application.Interfaces;
@@ -13,15 +14,18 @@ public sealed class UsersController : ControllerBase
     private readonly PlanningDbContext _dbContext;
     private readonly IUserSyncService _syncService;
     private readonly IOutOfOfficeCalendarService _outOfOfficeService;
+    private readonly IEmployeeIdentityService _employeeIdentityService;
 
     public UsersController(
         PlanningDbContext dbContext,
         IUserSyncService syncService,
-        IOutOfOfficeCalendarService outOfOfficeService)
+        IOutOfOfficeCalendarService outOfOfficeService,
+        IEmployeeIdentityService employeeIdentityService)
     {
         _dbContext = dbContext;
         _syncService = syncService;
         _outOfOfficeService = outOfOfficeService;
+        _employeeIdentityService = employeeIdentityService;
     }
 
     [HttpGet]
@@ -176,6 +180,62 @@ public sealed class UsersController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// The user's faglighed/profession, straight from Microsoft Entra.
+    /// </summary>
+    [HttpGet("{employeeId:int}/classification")]
+    public async Task<ActionResult<EmployeeClassificationDto>> GetClassification(
+        int employeeId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _employeeIdentityService.GetAsync(employeeId, cancellationToken));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Writes the classification to Entra, mirrors it to extensionAttribute1-3 and refreshes
+    /// the local read model. Restricted: these values can drive Entra dynamic group membership
+    /// and downstream access, so ordinary planner users must not change them.
+    /// </summary>
+    [HttpPut("{employeeId:int}/classification")]
+    [Authorize(Policy = "EmployeeClassificationWrite")]
+    public async Task<ActionResult<EmployeeClassificationDto>> UpdateClassification(
+        int employeeId,
+        [FromBody] UpdateEmployeeClassificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // The caller identifies the employee by id only. The UPN that Graph is called with
+            // is resolved server-side from ext.users, never taken from the request.
+            var caller = CallerInfo.FromClaimsPrincipal(User);
+
+            return Ok(await _employeeIdentityService.UpdateAsync(employeeId, request, caller, cancellationToken));
+        }
+        catch (EmployeeClassificationValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = ex.Message });
         }
     }
 

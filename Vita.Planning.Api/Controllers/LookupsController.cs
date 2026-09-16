@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vita.Planning.Application.Interfaces;
 
@@ -10,10 +10,14 @@ namespace Vita.Planning.Api.Controllers;
 public sealed class LookupsController : ControllerBase
 {
     private readonly ILookupService _lookupService;
+    private readonly IEmployeeIdentityService _employeeIdentityService;
 
-    public LookupsController(ILookupService lookupService)
+    public LookupsController(
+        ILookupService lookupService,
+        IEmployeeIdentityService employeeIdentityService)
     {
         _lookupService = lookupService;
+        _employeeIdentityService = employeeIdentityService;
     }
 
     [HttpGet("offer-statuses")]
@@ -51,6 +55,24 @@ public sealed class LookupsController : ControllerBase
     [HttpGet("engineering-disciplines")]
     public async Task<IActionResult> GetEngineeringDisciplines(CancellationToken cancellationToken) =>
         Ok(await _lookupService.GetEngineeringDisciplinesAsync(cancellationToken));
+
+    /// <summary>
+    /// Allowed faglighed/profession values, read live from the Entra attribute definitions.
+    /// Lives here with every other dropdown source rather than under its own route, so the
+    /// frontend has one place to look for lookup lists regardless of where they come from.
+    /// </summary>
+    [HttpGet("employee-classification")]
+    public async Task<IActionResult> GetEmployeeClassification(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _employeeIdentityService.GetOptionsAsync(cancellationToken));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = ex.Message });
+        }
+    }
 
     [HttpGet("segments")]
     public async Task<IActionResult> GetSegments(CancellationToken cancellationToken) =>
