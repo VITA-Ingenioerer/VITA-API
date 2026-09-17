@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vita.Atlas.Application.Interfaces;
 
@@ -11,7 +11,7 @@ namespace Vita.Atlas.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/resource-plan-history")]
-[Authorize]
+[Authorize(Policy = "AdminAccess")]
 public sealed class ResourcePlanHistoryQueryController : ControllerBase
 {
     private readonly IResourcePlanHistoryQueryService _service;

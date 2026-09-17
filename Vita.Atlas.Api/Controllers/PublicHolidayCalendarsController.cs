@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Json;
 using Vita.Atlas.Application.DTOs;
@@ -7,6 +8,9 @@ namespace Vita.Atlas.Api.Controllers;
 
 [ApiController]
 [Route("api/public-holiday-calendars")]
+// Holiday data shifts every employee's available capacity at once, so writing it is an
+// admin action. Reads stay open to any planner user — the planner renders holidays in the
+// grid for everyone.
 public sealed class PublicHolidayCalendarsController : ControllerBase
 {
     private readonly IPublicHolidayCalendarService _service;
@@ -38,6 +42,7 @@ public sealed class PublicHolidayCalendarsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Policy = "AdminAccess")]
     [HttpPost]
     public async Task<ActionResult<PublicHolidayCalendarDto>> Create(
         [FromBody] CreatePublicHolidayCalendarRequest request,
@@ -47,6 +52,7 @@ public sealed class PublicHolidayCalendarsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.PublicHolidayCalendarId }, result);
     }
 
+    [Authorize(Policy = "AdminAccess")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<PublicHolidayCalendarDto>> Update(
         int id,
@@ -63,6 +69,7 @@ public sealed class PublicHolidayCalendarsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Policy = "AdminAccess")]
     [HttpPost("sync")]
     public async Task<IActionResult> Sync(
         [FromQuery] string countryCode,

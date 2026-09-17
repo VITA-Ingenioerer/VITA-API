@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
@@ -7,7 +7,7 @@ namespace Vita.Atlas.Api.Controllers;
 
 [ApiController]
 [Route("api/project-lifecycle-log")]
-[Authorize(Policy = "PlannerAccess")]
+[Authorize(Policy = "AdminAccess")]
 public sealed class ProjectLifecycleLogController : ControllerBase
 {
     private readonly IProjectLifecycleLogService _service;

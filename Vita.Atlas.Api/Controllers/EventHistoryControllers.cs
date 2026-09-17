@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vita.Atlas.Application.Interfaces;
 
@@ -6,7 +6,7 @@ namespace Vita.Atlas.Api.Controllers;
 
 [ApiController]
 [Route("api/history/resource-plan-entries")]
-[Authorize(Policy = "PlannerAccess")]
+[Authorize(Policy = "AdminAccess")]
 public sealed class ResourcePlanEntryHistoryController : ControllerBase
 {
     private readonly IResourcePlanEntryHistoryService _service;
@@ -85,7 +85,7 @@ public sealed class ResourcePlanEntryHistoryController : ControllerBase
 
 [ApiController]
 [Route("api/history/business-events")]
-[Authorize(Policy = "PlannerAccess")]
+[Authorize(Policy = "AdminAccess")]
 public sealed class BusinessEventsController : ControllerBase
 {
     private readonly IBusinessEventService _service;
@@ -153,7 +153,7 @@ public sealed class BusinessEventsController : ControllerBase
 
 [ApiController]
 [Route("api/history/sync-runs")]
-[Authorize(Policy = "PlannerAccess")]
+[Authorize(Policy = "AdminAccess")]
 public sealed class SyncRunHistoryController : ControllerBase
 {
     private readonly ISyncRunService _service;
@@ -189,7 +189,7 @@ public sealed class SyncRunHistoryController : ControllerBase
 
 [ApiController]
 [Route("api/history/errors")]
-[Authorize(Policy = "PlannerAccess")]
+[Authorize(Policy = "AdminAccess")]
 public sealed class OpsErrorsController : ControllerBase
 {
     private readonly IErrorLogService _service;
@@ -215,7 +215,7 @@ public sealed class OpsErrorsController : ControllerBase
 
 [ApiController]
 [Route("api/history/trace")]
-[Authorize(Policy = "PlannerAccess")]
+[Authorize(Policy = "AdminAccess")]
 public sealed class CorrelationTraceController : ControllerBase
 {
     private readonly ICorrelationTraceService _service;

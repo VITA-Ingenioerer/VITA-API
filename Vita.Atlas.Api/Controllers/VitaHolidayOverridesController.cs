@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
@@ -6,6 +7,9 @@ namespace Vita.Atlas.Api.Controllers;
 
 [ApiController]
 [Route("api/vita-holiday-overrides")]
+// Holiday data shifts every employee's available capacity at once, so writing it is an
+// admin action. Reads stay open to any planner user — the planner renders holidays in the
+// grid for everyone.
 public sealed class VitaHolidayOverridesController : ControllerBase
 {
     private readonly IVitaHolidayService _service;
@@ -41,6 +45,7 @@ public sealed class VitaHolidayOverridesController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Policy = "AdminAccess")]
     [HttpPost]
     public async Task<ActionResult<VitaHolidayOverrideDto>> Create(
         [FromBody] CreateVitaHolidayOverrideRequest request,
@@ -71,6 +76,7 @@ public sealed class VitaHolidayOverridesController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "AdminAccess")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<VitaHolidayOverrideDto>> Update(
         int id,
@@ -107,6 +113,7 @@ public sealed class VitaHolidayOverridesController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "AdminAccess")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {

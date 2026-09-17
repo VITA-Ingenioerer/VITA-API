@@ -255,9 +255,14 @@ public sealed class UserAccessService : IUserAccessService
         _settings.BootstrapAdminUserPrincipalNames.Contains(userPrincipalName, StringComparer.OrdinalIgnoreCase);
 
     // The role ladder expressed once, on the server. Each level includes everything below it.
+    //
+    // "holidays" and "logs" sit with "access" as admin-only: the holiday calendar shifts every
+    // employee's capacity at once, and the log view exposes activity across the whole company.
+    // Neither is something a line manager needs to do their own job.
     private static string[] CapabilitiesFor(AccessRole role) => role switch
     {
-        AccessRole.Admin => ["timeEntry", "resourcePlan", "projects", "employees", "employeeWrite", "access"],
+        AccessRole.Admin =>
+            ["timeEntry", "resourcePlan", "projects", "employees", "employeeWrite", "holidays", "logs", "access"],
         AccessRole.Manager => ["timeEntry", "resourcePlan", "projects", "employees", "employeeWrite"],
         _ => ["timeEntry", "resourcePlan", "projects"]
     };
