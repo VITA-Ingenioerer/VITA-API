@@ -63,6 +63,7 @@ public sealed class AtlasDbContext : DbContext
     public DbSet<OvertimeBalanceComputedRow> OvertimeBalanceComputedRows => Set<OvertimeBalanceComputedRow>();
     public DbSet<ExtTimeEntry> TimeEntries => Set<ExtTimeEntry>();
     public DbSet<UserSecondaryFaglighed> UserSecondaryFagligheder => Set<UserSecondaryFaglighed>();
+    public DbSet<UserAccess> UserAccess => Set<UserAccess>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

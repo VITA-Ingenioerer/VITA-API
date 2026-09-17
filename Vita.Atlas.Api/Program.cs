@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Vita.Atlas.Application.DTOs;
+using Vita.Atlas.Domain.Enums;
 using Vita.Atlas.Application.Interfaces;
 using Vita.Atlas.Infrastructure.Clients;
 using Vita.Atlas.Infrastructure.Data;
 using Vita.Atlas.Infrastructure.Services;
+using Vita.Atlas.Api.Authorization;
 using Vita.Atlas.Api.HostedServices;
 using Vita.Atlas.Api.Middleware;
 
@@ -41,29 +43,30 @@ builder.Services.AddAuthorization(options =>
         policy.RequireScope("Planner.Access");
     });
 
+    // The access ladder. Both still require Planner.Access, so a role grant widens what a
+    // planner user may do and never substitutes for being a planner user in the first place.
+    options.AddPolicy("ManagerAccess", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireScope("Planner.Access");
+        policy.Requirements.Add(new MinimumAccessRoleRequirement(AccessRole.Manager));
+    });
+
+    options.AddPolicy("AdminAccess", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireScope("Planner.Access");
+        policy.Requirements.Add(new MinimumAccessRoleRequirement(AccessRole.Admin));
+    });
+
+    // Alternatives, not conjunction: app role OR UPN allowlist OR Manager on the access
+    // ladder. Expressed as one requirement because separate policy clauses would be AND-ed.
     options.AddPolicy("EmployeeClassificationWrite", policy =>
     {
         policy.RequireAuthenticatedUser();
         policy.RequireScope("Planner.Access");
-        policy.RequireAssertion(context =>
-        {
-            // Checked as a raw claim rather than via IsInRole: app roles arrive in the
-            // "roles" claim, which is not the role claim type JwtBearer maps by default.
-            var hasRole = context.User.Claims.Any(c =>
-                (c.Type == "roles" || c.Type == System.Security.Claims.ClaimTypes.Role) &&
-                string.Equals(c.Value, classificationWriteRole, StringComparison.OrdinalIgnoreCase));
-
-            if (hasRole)
-            {
-                return true;
-            }
-
-            var upn = context.User.FindFirst("upn")?.Value
-                      ?? context.User.FindFirst("preferred_username")?.Value;
-
-            return !string.IsNullOrWhiteSpace(upn) &&
-                   classificationWriteUpns.Contains(upn, StringComparer.OrdinalIgnoreCase);
-        });
+        policy.Requirements.Add(
+            new EmployeeClassificationWriteRequirement(classificationWriteRole, classificationWriteUpns));
     });
 
     if (requireGlobalAuthentication)
@@ -205,6 +208,9 @@ builder.Services.Configure<MicrosoftGraphSettings>(
 builder.Services.Configure<EntraClassificationSettings>(
     builder.Configuration.GetSection("EntraClassification"));
 
+builder.Services.Configure<UserAccessSettings>(
+    builder.Configuration.GetSection("Access"));
+
 // Employee classification talks to the same app registration as the other Graph clients.
 // Rather than making the same tenant/client/secret be configured twice, anything left
 // unset in the EntraClassification section inherits from MicrosoftGraph. Setting a value
@@ -275,6 +281,11 @@ builder.Services.AddScoped<IEconomicProjectNumberAllocator, EconomicProjectNumbe
 builder.Services.AddScoped<ICustomerPartnerRoleService, CustomerPartnerRoleService>();
 builder.Services.AddScoped<IUserSyncService, UserSyncService>();
 builder.Services.AddScoped<IEmployeeIdentityService, EmployeeIdentityService>();
+builder.Services.AddScoped<IUserAccessService, UserAccessService>();
+
+// Scoped, not singleton: the handler resolves the caller's role through the scoped DbContext.
+builder.Services.AddScoped<IAuthorizationHandler, MinimumAccessRoleHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, EmployeeClassificationWriteHandler>();
 builder.Services.AddScoped<ISyncRunService, SyncRunService>();
 builder.Services.AddScoped<IInternalPlanningCodeService, InternalPlanningCodeService>();
 builder.Services.AddScoped<IOfferService, OfferService>();

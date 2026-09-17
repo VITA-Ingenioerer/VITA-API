@@ -17,18 +17,67 @@ public sealed class UsersController : ControllerBase
     private readonly IEmployeeIdentityService _employeeIdentityService;
     private readonly IEntraUserProfileClient _entraUserProfileClient;
 
+    private readonly IUserAccessService _userAccessService;
+
     public UsersController(
         AtlasDbContext dbContext,
         IUserSyncService syncService,
         IOutOfOfficeCalendarService outOfOfficeService,
         IEmployeeIdentityService employeeIdentityService,
-        IEntraUserProfileClient entraUserProfileClient)
+        IEntraUserProfileClient entraUserProfileClient,
+        IUserAccessService userAccessService)
     {
         _dbContext = dbContext;
         _syncService = syncService;
         _outOfOfficeService = outOfOfficeService;
         _employeeIdentityService = employeeIdentityService;
         _entraUserProfileClient = entraUserProfileClient;
+        _userAccessService = userAccessService;
+    }
+
+    /// <summary>
+    /// What the signed-in caller may do. Intentionally open to every authenticated planner user:
+    /// it reports only the caller's own access, and the frontend needs it before it can decide
+    /// which web parts to render.
+    /// </summary>
+    [HttpGet("access/me")]
+    public async Task<ActionResult<CurrentUserAccessDto>> GetMyAccess(CancellationToken cancellationToken)
+    {
+        return Ok(await _userAccessService.GetCurrentAsync(User, cancellationToken));
+    }
+
+    /// <summary>Every active employee and their role, for the access pane.</summary>
+    [HttpGet("access")]
+    [Authorize(Policy = "AdminAccess")]
+    public async Task<ActionResult<IReadOnlyList<UserAccessDto>>> ListAccess(CancellationToken cancellationToken)
+    {
+        return Ok(await _userAccessService.ListAsync(cancellationToken));
+    }
+
+    /// <summary>
+    /// Grants, changes or clears one employee's role. A null role clears the override and lets
+    /// the org chart decide again.
+    /// </summary>
+    [HttpPut("{employeeId:int}/access")]
+    [Authorize(Policy = "AdminAccess")]
+    public async Task<ActionResult<UserAccessDto>> UpdateAccess(
+        int employeeId,
+        [FromBody] UpdateUserAccessRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var caller = CallerInfo.FromClaimsPrincipal(User);
+            return Ok(await _userAccessService.SetAsync(employeeId, request, caller, cancellationToken));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet]
@@ -136,6 +185,7 @@ public sealed class UsersController : ControllerBase
     // our row "correct" and Entra stale until someone noticed, and the next user sync would
     // quietly overwrite our value from Entra anyway.
     [HttpPut("{employeeId:int}/profile")]
+    [Authorize(Policy = "ManagerAccess")]
     public async Task<IActionResult> UpdateProfile(
         int employeeId,
         [FromBody] UpdateUserProfileRequest request,
@@ -204,6 +254,7 @@ public sealed class UsersController : ControllerBase
     // comes from e-conomic or Graph and is replaced on the next sync. Hence a field-specific
     // endpoint rather than a general user update that would invite editing synced columns.
     [HttpPut("{employeeId:int}/note")]
+    [Authorize(Policy = "ManagerAccess")]
     public async Task<IActionResult> UpdateNote(
         int employeeId,
         [FromBody] UpdateUserNoteRequest request,

@@ -55,7 +55,14 @@ public sealed class ResourcePlanEntryConfiguration : IEntityTypeConfiguration<Re
         builder.Property(x => x.ProjectActivityId)
             .HasColumnName("ext_project_activity_number");
 
-        builder.HasIndex(x => x.PlanningTargetId);
+        // Covering on purpose. ProjectQueryService/OfferService answer "when was this last
+        // planned?" with MAX(updated_at ?? created_at) grouped per target; on the bare
+        // planning_target_id index those two columns are off-index, so the aggregate degrades
+        // into a key lookup per entry (~270k rows) and the list endpoints pay seconds per page.
+        // With them included the group-by is satisfied from the index alone. Matching
+        // CREATE INDEX in Sql/2026-09-cover-resource-plan-entry-activity.sql.
+        builder.HasIndex(x => x.PlanningTargetId)
+            .IncludeProperties(x => new { x.UpdatedAt, x.CreatedAt });
         builder.HasIndex(x => x.PlanDate);
 
         // Split in two: SQL Server's composite unique index disallows duplicate
