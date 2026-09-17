@@ -4,8 +4,18 @@ namespace Vita.Atlas.Application.DTOs;
 
 public sealed class CreateResourcePlanRequest
 {
-    [Required]
-    public int EmployeeId { get; set; }
+    /// <summary>
+    /// The employee this plan belongs to. Mutually exclusive with
+    /// <see cref="VirtualResourceId"/> — a plan belongs to exactly one of them, which is what
+    /// core.resource_plans models with its two nullable columns.
+    /// </summary>
+    public int? EmployeeId { get; set; }
+
+    /// <summary>
+    /// An unfilled role (NN-BIM) or a named external (Lars J at PLH arkitekter), instead of an
+    /// employee. Hours are written against the resulting ResourcePlanId exactly as for a person.
+    /// </summary>
+    public int? VirtualResourceId { get; set; }
 
     [Required]
     public int ScenarioId { get; set; }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using System.Net.Http.Json;
@@ -298,11 +298,20 @@ public sealed class LegacyImportController : ControllerBase
                 .Distinct()
                 .ToList();
 
-            var existingEntriesByKey = await _dbContext.ResourcePlanEntries
+            // Grouped, not a dictionary keyed by (plan, target, day). Since
+            // Sql/2026-07-split-entry-uniqueness-by-activity.sql, the uniqueness of an entry
+            // includes ext_project_activity_number: UX_..._day_activity is unique per
+            // (plan, target, day, activity) for non-null activities, and UX_..._day_no_activity
+            // covers the single null-activity row. So several rows can legitimately share a
+            // (plan, target, day) — ToDictionary on that key threw "An item with the same key
+            // has already been added" on the first project that had two activities on one day.
+            var existingEntries = await _dbContext.ResourcePlanEntries
                 .Where(e => relevantResourcePlanIds.Contains(e.ResourcePlanId))
-                .ToDictionaryAsync(
-                    e => (e.ResourcePlanId, e.PlanningTargetId, e.PlanDate),
-                    cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var existingEntriesByDay = existingEntries
+                .GroupBy(e => (e.ResourcePlanId, e.PlanningTargetId, e.PlanDate))
+                .ToDictionary(g => g.Key, g => g.ToList());
 
             // 5. Import entries (upsert: create new, update changed hours/description)
             int created = 0;
@@ -366,9 +375,19 @@ public sealed class LegacyImportController : ControllerBase
                     var planDate = businessDays[dayIndex];
                     var distributedHoursForDay = distributedHours[dayIndex];
 
-                    existingEntriesByKey.TryGetValue(
+                    existingEntriesByDay.TryGetValue(
                         (resourcePlan.ResourcePlanId, planningTarget.PlanningTargetId, planDate),
-                        out var existing);
+                        out var candidatesForDay);
+
+                    // Pick the row this item actually owns, in an order that cannot violate
+                    // either unique index: the exact activity match first; failing that, the
+                    // null-activity row, which is safe to re-point at the matched activity
+                    // precisely because no exact match exists. If neither is there, every row
+                    // on this day belongs to a different activity and this one is a genuine
+                    // insert rather than an update.
+                    var existing =
+                        candidatesForDay?.FirstOrDefault(e => e.ProjectActivityId == matchedProjectActivityId)
+                        ?? candidatesForDay?.FirstOrDefault(e => e.ProjectActivityId is null);
 
                     if (existing is not null)
                     {

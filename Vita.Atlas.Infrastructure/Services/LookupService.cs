@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
 using Vita.Atlas.Infrastructure.Data;
@@ -104,7 +104,12 @@ public sealed class LookupService : ILookupService
                 VirtualResourceId = x.VirtualResourceId,
                 Code = x.Code,
                 Name = x.Name,
-                DisciplineId = x.DisciplineId
+                DisciplineId = x.DisciplineId,
+                CustomerId = x.CustomerId,
+                // Joined here so the planner can label an external row "Lars J · PLH arkitekter"
+                // without a second lookup per row.
+                CustomerName = x.Customer == null ? null : x.Customer.Name,
+                IsActive = x.IsActive
             })
             .ToListAsync(cancellationToken);
 }

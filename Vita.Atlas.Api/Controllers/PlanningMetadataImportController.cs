@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -86,7 +86,8 @@ public sealed class PlanningMetadataImportController : ControllerBase
         PlanningMetadataImportUploadRequest request,
         long runId,
         string resourceName,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool dryRun = false)
     {
         var result = new PlanningMetadataImportResult();
 
@@ -125,17 +126,25 @@ public sealed class PlanningMetadataImportController : ControllerBase
             {
                 case PlanningMetadataImportTarget.Offers:
                 {
-                    // Offers are imported through POST /api/offers/import, which owns the offer
-                    // sheet's full column set (probability, customer, partner companies). Two
-                    // importers writing core.offers is what made the earlier constraint failure
-                    // so hard to place, so this one no longer touches them.
-                    result.Skipped++;
-                    result.Issues.Add(new PlanningMetadataImportIssue
+                    // A narrow top-up, not the full offer import.
+                    //
+                    // POST /api/offers/import owns the whole offer record — its ApplyImport
+                    // assigns every column unconditionally, so a sheet that omits one blanks it.
+                    // The Projekter sheet carries five offer-relevant columns out of roughly
+                    // twenty, so routing these rows through that path would wipe status, PQ
+                    // dates, expected start/end, project type and notes off all 113 existing
+                    // offers. Only the columns this sheet actually owns are written here.
+                    var offerState = await UpsertOfferMetadataAsync(item, projectCode, probability, result, index + 1, cancellationToken);
+
+                    if (offerState == EntityImportState.Created)
                     {
-                        Row = index + 1,
-                        Projektnr = projectCode,
-                        Reason = "Offer rows are imported through POST /api/offers/import."
-                    });
+                        result.OffersCreated++;
+                    }
+                    else
+                    {
+                        result.OffersUpdated++;
+                    }
+
                     continue;
                 }
                 case PlanningMetadataImportTarget.ProjectMetadata:
@@ -198,6 +207,26 @@ public sealed class PlanningMetadataImportController : ControllerBase
             }
         }
 
+        if (dryRun)
+        {
+            // Everything above ran for real — routing, validation, the upserts themselves — so
+            // the counts and issues are exactly what a live run would produce. Only the write is
+            // withheld, and the tracked changes are dropped so nothing leaks into a later save.
+            _dbContext.ChangeTracker.Clear();
+
+            await _syncRunService.CompleteRunAsync(
+                runId,
+                "success",
+                rowsRead: items.Count,
+                errorCount: result.Issues.Count,
+                notes: "Dry run — nothing was written.",
+                cancellationToken: cancellationToken);
+
+            result.Message = "Dry run complete. Nothing was written.";
+            result.DryRun = true;
+            return Ok(result);
+        }
+
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -241,6 +270,86 @@ public sealed class PlanningMetadataImportController : ControllerBase
 
         result.Message = "Import complete.";
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Imports the Projekter sheet from an uploaded "Ressourceplan - Back end" workbook.
+    ///
+    /// Separate from planning-metadata-excel because that one assumes a plain .xlsx whose first
+    /// used row is the header. This workbook is an .xlsm whose Projekter headers sit on row 9,
+    /// under a Fa/In/Fr/Sa legend, and whose Sandsynlighed column holds fractions rather than
+    /// percentages. RessourceplanWorkbookFile handles all three; pointing the old endpoint at
+    /// this file skipped all 650 rows as "Missing projektnr.".
+    /// </summary>
+    [HttpPost("ressourceplan-workbook-metadata")]
+    [RequestSizeLimit(50 * 1024 * 1024)]
+    public async Task<ActionResult<PlanningMetadataImportResult>> ImportRessourceplanWorkbookMetadata(
+        IFormFile file,
+        [FromQuery] string? target,
+        [FromQuery] bool dryRun,
+        CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { message = "A workbook file is required." });
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+
+        if (!extension.Equals(".xlsm", StringComparison.OrdinalIgnoreCase) &&
+            !extension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "Only .xlsm and .xlsx files are supported." });
+        }
+
+        var runId = await _syncRunService.StartRunAsync(
+            "internal", "ressourceplan-workbook-metadata", ResolveInitiatedBy(),
+            notes: file.FileName, cancellationToken: cancellationToken);
+
+        RessourceplanWorkbookFile.Contents contents;
+
+        try
+        {
+            // Copied to memory first: ClosedXML seeks, and the upload stream may not support it.
+            using var buffer = new MemoryStream();
+            await file.CopyToAsync(buffer, cancellationToken);
+            buffer.Position = 0;
+            contents = RessourceplanWorkbookFile.Parse(buffer);
+        }
+        catch (Exception ex)
+        {
+            await _syncRunService.LogErrorAsync(
+                runId, "internal", "ressourceplan-workbook-metadata", "parse-workbook", ex.Message,
+                cancellationToken: cancellationToken);
+            await _syncRunService.CompleteRunAsync(
+                runId, "failed", errorCount: 1, notes: ex.Message, cancellationToken: cancellationToken);
+            throw;
+        }
+
+        if (contents.ProjectRows.Count == 0)
+        {
+            var emptyMessage = contents.Warnings.Count > 0
+                ? string.Join(" ", contents.Warnings)
+                : $"No rows were found in the '{RessourceplanWorkbookFile.ProjectsWorksheetName}' worksheet.";
+
+            await _syncRunService.CompleteRunAsync(
+                runId, "failed", rowsRead: 0, notes: emptyMessage, cancellationToken: cancellationToken);
+
+            return BadRequest(new { message = emptyMessage });
+        }
+
+        var uploadRequest = new PlanningMetadataImportUploadRequest { File = file, Target = target };
+
+        var response = await ProcessItems(
+            contents.ProjectRows, uploadRequest, runId, "ressourceplan-workbook-metadata", cancellationToken, dryRun);
+
+        if (response.Result is OkObjectResult { Value: PlanningMetadataImportResult result })
+        {
+            result.HeaderRowNumber = contents.ProjectsHeaderRowNumber;
+            result.Warnings = contents.Warnings;
+        }
+
+        return response;
     }
 
     [HttpPost("planning-metadata-excel")]
@@ -441,6 +550,113 @@ public sealed class PlanningMetadataImportController : ControllerBase
         entity.IsBillableForPlanning = string.Equals(normalizedCode, "FA", StringComparison.OrdinalIgnoreCase)
             || string.Equals(normalizedCode, "SA", StringComparison.OrdinalIgnoreCase);
         entity.IsProbableCase = probabilityPercent < 100m;
+
+        return state;
+    }
+
+    /// <summary>
+    /// Writes only what the Projekter sheet knows about an offer: title, probability, fee,
+    /// customer and responsible initials. Everything else on core.offers is left exactly as it
+    /// is, because this sheet is not the authority for it.
+    /// </summary>
+    private async Task<EntityImportState> UpsertOfferMetadataAsync(
+        PlanningMetadataImportItem item,
+        string offerNumber,
+        decimal? probability,
+        PlanningMetadataImportResult result,
+        int rowNumber,
+        CancellationToken cancellationToken)
+    {
+        var normalizedOfferNumber = offerNumber.Trim().ToUpperInvariant();
+
+        var entity = await _dbContext.Offers
+            .FirstOrDefaultAsync(x => x.OfferNumber == normalizedOfferNumber, cancellationToken);
+
+        var state = entity is null ? EntityImportState.Created : EntityImportState.Updated;
+        var now = DateTime.UtcNow;
+        var title = Normalize(item.Projektnavn);
+
+        if (entity is null)
+        {
+            entity = new Offer
+            {
+                OfferNumber = normalizedOfferNumber,
+                // Title is required; the offer number is the only thing guaranteed present.
+                Title = TrimToMaxLength(title, 255) ?? normalizedOfferNumber,
+                IsActive = true,
+                AddToPqCompetition = false,
+                CreatedBy = ImportActor,
+                CreatedAtUtc = now
+            };
+
+            _dbContext.Offers.Add(entity);
+        }
+        else
+        {
+            // A blank cell means "this sheet does not say", not "clear it".
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                entity.Title = TrimToMaxLength(title, 255)!;
+            }
+
+            entity.UpdatedBy = ImportActor;
+            entity.UpdatedAtUtc = now;
+        }
+
+        // Same reasoning: only overwrite the probability when the sheet states one. The full
+        // offer import defaults a blank to 100%, but it owns the record — silently promoting a
+        // 25% offer to certain because this sheet left the cell empty would be a real loss.
+        if (probability.HasValue)
+        {
+            entity.ProbabilityPercent = probability.Value;
+            entity.IsProbableCase = probability.Value < 100m;
+        }
+
+        var fee = ParseNullableDecimal(item.Honorar);
+        if (fee.HasValue)
+        {
+            entity.FeeAmount = fee;
+        }
+
+        // Initials only stick if they name a real active user — the column also carries free
+        // text that names nobody, and the offers importer applies the same rule.
+        var initials = NormalizeUpper(item.Pl);
+        if (!string.IsNullOrWhiteSpace(initials))
+        {
+            var isKnown = await _dbContext.Users
+                .AnyAsync(u => u.IsActive && u.UserPrincipalName != null
+                               && u.UserPrincipalName.StartsWith(initials + "@"), cancellationToken);
+
+            if (isKnown)
+            {
+                entity.ResponsibleInitials = TrimToMaxLength(initials, 20);
+            }
+        }
+
+        // Matched against existing customers only. Creating one per unmatched name would seed
+        // core.customers with typos from a sheet that is not the customer authority.
+        var customerName = Normalize(item.Kundenavn);
+        if (!string.IsNullOrWhiteSpace(customerName))
+        {
+            var customerId = await _dbContext.Customers
+                .Where(c => c.Name == customerName)
+                .Select(c => (int?)c.CustomerId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (customerId.HasValue)
+            {
+                entity.CustomerId = customerId;
+            }
+            else
+            {
+                result.Issues.Add(new PlanningMetadataImportIssue
+                {
+                    Row = rowNumber,
+                    Projektnr = offerNumber,
+                    Reason = $"Customer '{customerName}' was not found, so the offer was imported without a customer link."
+                });
+            }
+        }
 
         return state;
     }
@@ -820,6 +1036,10 @@ public sealed class PlanningMetadataImportItem
 public sealed class PlanningMetadataImportResult
 {
     public string Message { get; set; } = string.Empty;
+    public bool DryRun { get; set; }
+    /// <summary>Which row of the Projekter sheet the headers were found on, so a mis-read is visible.</summary>
+    public int? HeaderRowNumber { get; set; }
+    public List<string> Warnings { get; set; } = [];
     public int OffersCreated { get; set; }
     public int OffersUpdated { get; set; }
     public int ProjectMetadataCreated { get; set; }

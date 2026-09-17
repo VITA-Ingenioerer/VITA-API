@@ -48,9 +48,55 @@ public sealed class ResourcePlanService : IResourcePlanService
         ValidateMonth(request.StartMonth);
         ValidateVisibleMonths(request.VisibleMonths);
 
+        // Exactly one owner. Enforced here rather than by [Required] on either property,
+        // because the requirement is a relationship between the two and an attribute can only
+        // see one at a time.
+        if (request.EmployeeId.HasValue == request.VirtualResourceId.HasValue)
+        {
+            throw new InvalidOperationException(
+                "A resource plan needs exactly one of EmployeeId or VirtualResourceId.");
+        }
+
+        if (request.EmployeeId.HasValue)
+        {
+            var employeeExists = await _dbContext.Users
+                .AnyAsync(x => x.EmployeeId == request.EmployeeId.Value, cancellationToken);
+
+            if (!employeeExists)
+            {
+                throw new InvalidOperationException($"Employee {request.EmployeeId.Value} was not found.");
+            }
+        }
+        else
+        {
+            var virtualResourceExists = await _dbContext.VirtualResources
+                .AnyAsync(x => x.VirtualResourceId == request.VirtualResourceId!.Value, cancellationToken);
+
+            if (!virtualResourceExists)
+            {
+                throw new InvalidOperationException(
+                    $"Virtual resource {request.VirtualResourceId!.Value} was not found.");
+            }
+        }
+
+        // One plan per owner per scenario; a second would split the same person's hours across
+        // two grids. The legacy import resolves rather than creates for the same reason.
+        var duplicate = request.EmployeeId.HasValue
+            ? await _dbContext.ResourcePlans.AnyAsync(
+                x => x.EmployeeId == request.EmployeeId.Value && x.ScenarioId == request.ScenarioId, cancellationToken)
+            : await _dbContext.ResourcePlans.AnyAsync(
+                x => x.VirtualResourceId == request.VirtualResourceId!.Value && x.ScenarioId == request.ScenarioId, cancellationToken);
+
+        if (duplicate)
+        {
+            throw new InvalidOperationException(
+                "A resource plan already exists for this resource in the given scenario.");
+        }
+
         var entity = new ResourcePlan
         {
             EmployeeId = request.EmployeeId,
+            VirtualResourceId = request.VirtualResourceId,
             ScenarioId = request.ScenarioId,
             StartYear = request.StartYear,
             StartMonth = request.StartMonth,

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Vita.Atlas.Infrastructure.Data.Entities;
 
@@ -32,7 +32,23 @@ public sealed class VirtualResourceConfiguration : IEntityTypeConfiguration<Virt
             .HasColumnName("is_active")
             .IsRequired();
 
-        builder.HasIndex(x => x.Code);
+        builder.Property(x => x.CustomerId)
+            .HasColumnName("customer_id");
+
+        builder.HasOne(x => x.Customer)
+            .WithMany()
+            .HasForeignKey(x => x.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Unique: the legacy Timer-tabel import matches a row's initials against this code, so
+        // two resources sharing one would make that lookup ambiguous.
+        builder.HasIndex(x => x.Code)
+            .IsUnique()
+            .HasDatabaseName("UX_core_virtual_resources_code");
+
         builder.HasIndex(x => x.DisciplineId);
+
+        builder.HasIndex(x => x.CustomerId)
+            .HasFilter("[customer_id] IS NOT NULL");
     }
 }
