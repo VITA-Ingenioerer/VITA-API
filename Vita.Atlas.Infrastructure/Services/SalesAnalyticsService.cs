@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
 using Vita.Atlas.Infrastructure.Data;
@@ -125,7 +125,7 @@ public sealed class SalesAnalyticsService : ISalesAnalyticsService
         }
         var filteredRows = rows.ToList();
 
-        var summary = await BuildSummaryAsync(filteredRows, filter, cancellationToken);
+        var summary = BuildSummary(filteredRows);
 
         return new SalesAnalyticsDto
         {
@@ -165,24 +165,17 @@ public sealed class SalesAnalyticsService : ISalesAnalyticsService
     // recorded percentage should ever discount a value below its face amount.
     private static decimal WeightedValue(OfferRow row) => Value(row) * ((row.ProbabilityPercent ?? 100m) / 100m);
 
-    private async Task<SalesAnalyticsSummaryDto> BuildSummaryAsync(List<OfferRow> rows, SalesAnalyticsFilterRequest? filter, CancellationToken cancellationToken)
+    // Offers only. The project backlog that used to be computed here moved to
+    // BacklogAnalyticsService: it is a stock rather than a flow, it measures budget_revenue where
+    // this measures fee_amount, and a won offer plus the project it became are the same money —
+    // reporting both in one summary stated it twice. The query here also ignored the caller's
+    // year/office/region filters, so a view narrowed to one office still showed the whole
+    // company's backlog next to figures that were correctly narrowed.
+    private static SalesAnalyticsSummaryDto BuildSummary(List<OfferRow> rows)
     {
         var won = rows.Where(IsWon).ToList();
         var lost = rows.Where(IsLost).ToList();
         var open = rows.Where(r => !IsWon(r) && !IsLost(r)).ToList();
-
-        var projectsQuery = _db.Projects.AsNoTracking().AsQueryable();
-        var projects = await projectsQuery
-            .Select(p => new { p.ProjectNumber, p.IsClosed })
-            .ToListAsync(cancellationToken);
-
-        var openProjectNumbers = projects.Where(p => !p.IsClosed).Select(p => p.ProjectNumber).ToHashSet();
-
-        var openBacklogValue = openProjectNumbers.Count == 0
-            ? 0m
-            : await _db.ProjectMetadata.AsNoTracking()
-                .Where(m => openProjectNumbers.Contains(m.ProjectNumber) && m.BudgetRevenue.HasValue)
-                .SumAsync(m => m.BudgetRevenue!.Value, cancellationToken);
 
         var resolvedCount = won.Count + lost.Count;
 
@@ -196,10 +189,6 @@ public sealed class SalesAnalyticsService : ISalesAnalyticsService
             WonValue = won.Sum(Value),
             OpenPipelineValue = open.Sum(Value),
             WeightedOpenPipelineValue = open.Sum(WeightedValue),
-            TotalProjects = projects.Count,
-            OpenProjects = openProjectNumbers.Count,
-            ClosedProjects = projects.Count - openProjectNumbers.Count,
-            OpenProjectBacklogValue = openBacklogValue,
         };
     }
 

@@ -1,4 +1,4 @@
-namespace Vita.Atlas.Application.DTOs;
+﻿namespace Vita.Atlas.Application.DTOs;
 
 public sealed class SalesAnalyticsDto
 {
@@ -34,10 +34,9 @@ public sealed class SalesAnalyticsSummaryDto
     public decimal OpenPipelineValue { get; set; }
     public decimal WeightedOpenPipelineValue { get; set; }
 
-    public int TotalProjects { get; set; }
-    public int OpenProjects { get; set; }
-    public int ClosedProjects { get; set; }
-    public decimal OpenProjectBacklogValue { get; set; }
+    // Project counts and backlog value deliberately do not live here any more. They are a stock
+    // over a different population and were previously summed with, and filtered differently
+    // from, everything above — see BacklogAnalyticsDto. GET /api/analytics/backlog-overview.
 }
 
 public sealed class OfferStatusBreakdownItemDto
