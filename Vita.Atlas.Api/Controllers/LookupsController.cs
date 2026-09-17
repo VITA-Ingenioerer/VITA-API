@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Application.Interfaces;
 
 namespace Vita.Atlas.Api.Controllers;
@@ -11,14 +13,28 @@ public sealed class LookupsController : ControllerBase
 {
     private readonly ILookupService _lookupService;
     private readonly IEmployeeIdentityService _employeeIdentityService;
+    private readonly CapacityDefaultsSettings _capacityDefaults;
 
     public LookupsController(
         ILookupService lookupService,
-        IEmployeeIdentityService employeeIdentityService)
+        IEmployeeIdentityService employeeIdentityService,
+        IOptions<CapacityDefaultsSettings> capacityDefaults)
     {
         _lookupService = lookupService;
         _employeeIdentityService = employeeIdentityService;
+        _capacityDefaults = capacityDefaults.Value;
     }
+
+    /// <summary>
+    /// The baseline weekday pattern that a weekly-hours figure is spread across.
+    ///
+    /// Exposed so the employee pane can show the same split the server will compute rather than
+    /// hardcoding 37h = 7.5/7.5/7.5/7.5/7 in the frontend, where it would silently drift from
+    /// this configuration. The shape of the arithmetic lives in CapacityPatternCalculator —
+    /// this only publishes its inputs.
+    /// </summary>
+    [HttpGet("capacity-defaults")]
+    public ActionResult<CapacityDefaultsSettings> GetCapacityDefaults() => Ok(_capacityDefaults);
 
     [HttpGet("offer-statuses")]
     public async Task<IActionResult> GetOfferStatuses(CancellationToken cancellationToken) =>
