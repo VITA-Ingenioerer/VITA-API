@@ -75,50 +75,28 @@ public sealed class UserAccessService : IUserAccessService
         };
     }
 
-    public async Task<IReadOnlyList<UserAccessDto>> ListAsync(CancellationToken cancellationToken = default)
+    public async Task<UserAccessDto> GetAsync(int employeeId, CancellationToken cancellationToken = default)
     {
-        var employees = await _db.Users
+        var employee = await _db.Users
             .AsNoTracking()
-            .Where(u => u.IsActive)
-            .Select(u => new
-            {
-                u.EmployeeId,
-                u.DisplayName,
-                u.UserPrincipalName,
-                u.Department
-            })
-            .ToListAsync(cancellationToken);
+            .Where(u => u.EmployeeId == employeeId)
+            .Select(u => new { u.EmployeeId, u.DisplayName, u.UserPrincipalName, u.Department })
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new KeyNotFoundException($"Employee {employeeId} was not found.");
 
-        // Two set-based queries rather than a lookup per employee: the report counts that drive
-        // every derived role, and the handful of explicit overrides.
-        var reportCounts = await _db.Users
+        var reportCount = await CountActiveReportsAsync(employeeId, cancellationToken);
+
+        var explicitGrant = await _db.UserAccess
             .AsNoTracking()
-            .Where(u => u.IsActive && u.ManagerEmployeeId != null)
-            .GroupBy(u => u.ManagerEmployeeId!.Value)
-            .Select(g => new { ManagerEmployeeId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.ManagerEmployeeId, x => x.Count, cancellationToken);
+            .FirstOrDefaultAsync(x => x.EmployeeId == employeeId, cancellationToken);
 
-        var overrides = await _db.UserAccess
-            .AsNoTracking()
-            .ToDictionaryAsync(x => x.EmployeeId, cancellationToken);
-
-        return employees
-            .Select(employee =>
-            {
-                reportCounts.TryGetValue(employee.EmployeeId, out var reportCount);
-                overrides.TryGetValue(employee.EmployeeId, out var explicitGrant);
-
-                return BuildDto(
-                    employee.EmployeeId,
-                    employee.DisplayName,
-                    employee.UserPrincipalName,
-                    employee.Department,
-                    reportCount,
-                    explicitGrant);
-            })
-            .OrderByDescending(x => x.EffectiveRole)
-            .ThenBy(x => x.DisplayName, StringComparer.CurrentCultureIgnoreCase)
-            .ToList();
+        return BuildDto(
+            employee.EmployeeId,
+            employee.DisplayName,
+            employee.UserPrincipalName,
+            employee.Department,
+            reportCount,
+            explicitGrant);
     }
 
     public async Task<UserAccessDto> SetAsync(

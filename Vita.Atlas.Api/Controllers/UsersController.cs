@@ -46,12 +46,19 @@ public sealed class UsersController : ControllerBase
         return Ok(await _userAccessService.GetCurrentAsync(User, cancellationToken));
     }
 
-    /// <summary>Every active employee and their role, for the access pane.</summary>
-    [HttpGet("access")]
+    /// <summary>One employee's access, for the access section on their card.</summary>
+    [HttpGet("{employeeId:int}/access")]
     [Authorize(Policy = "AdminAccess")]
-    public async Task<ActionResult<IReadOnlyList<UserAccessDto>>> ListAccess(CancellationToken cancellationToken)
+    public async Task<ActionResult<UserAccessDto>> GetAccess(int employeeId, CancellationToken cancellationToken)
     {
-        return Ok(await _userAccessService.ListAsync(cancellationToken));
+        try
+        {
+            return Ok(await _userAccessService.GetAsync(employeeId, cancellationToken));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     /// <summary>

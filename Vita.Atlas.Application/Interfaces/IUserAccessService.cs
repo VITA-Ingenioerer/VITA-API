@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Vita.Atlas.Application.DTOs;
 using Vita.Atlas.Domain.Enums;
 
@@ -15,8 +15,11 @@ public interface IUserAccessService
     /// <summary>The caller's own access, including the capability list the frontend renders from.</summary>
     Task<CurrentUserAccessDto> GetCurrentAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
-    /// <summary>Every active employee with their derived and effective role. Admin-only.</summary>
-    Task<IReadOnlyList<UserAccessDto>> ListAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// One employee's access, for the access section on their card. Admin-only. Throws
+    /// <see cref="KeyNotFoundException"/> for an unknown employee.
+    /// </summary>
+    Task<UserAccessDto> GetAsync(int employeeId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sets or clears one employee's override. Admin-only. Throws
